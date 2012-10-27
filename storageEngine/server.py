@@ -1,4 +1,5 @@
 from flask import Flask, request
+import flaskext.couchdb
 
 app = Flask(__name__)
 
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     )
 
     # CouchDB Setup
-    manager = flaskext.couchdb.CouchDBManagger()
+    manager = flaskext.couchdb.CouchDBManager()
     manager.setup(app)
 
     # Install Views
