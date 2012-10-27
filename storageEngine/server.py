@@ -16,9 +16,13 @@ def home():
 
 @app.route('/capstone/pageview', methods=['POST'])
 def savePageview():
+    print("starting pageview push")
+
     if request.method == 'POST':
+        print("Request is post")
         # Retrieve the data from the request
         postData = request.json
+        print("retrieved post data")
 
         # Validate the request contained JSON
         if postData is None:
