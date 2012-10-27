@@ -1,8 +1,10 @@
 from flask import Flask, request
-import flaskext.couchdb
-
+from flaskext.couchdb import CouchDBManager
 app = Flask(__name__)
 
+# Config settings
+COUCHDB_SERVER = 'http://localhost:5984/'
+COUCHDB_DATABASE = 'capstone'
 
 # CouchDB Views
 
@@ -28,12 +30,12 @@ def savePageview():
 if __name__ == '__main__':
     app.config.update(
         DEBUG = True,
-        COUCHDB_SERVER = 'http://localhosts:5985',
-        COUCHDB_DATABASE = 'capstone'
+        COUCHDB_SERVER = COUCHDB_SERVER,
+        COUCHDB_DATABASE = COUCHDB_DATABASE
     )
 
     # CouchDB Setup
-    manager = flaskext.couchdb.CouchDBManager()
+    manager = CouchDBManager()
     manager.setup(app)
 
     # Install Views
