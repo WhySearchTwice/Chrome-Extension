@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flaskext.couchdb import CouchDBManager
+import couchdb
 import json
 app = Flask(__name__)
 
@@ -21,7 +21,9 @@ def savePageview():
         # Retrieve the data from the request
         requestData = request.data
         jsonRequestData = json.loads(requestData)
-        print jsonRequestData
+        
+        # Save the doc in the database
+        db.save(jsonRequestData)
 
 
     return 'A work in progress'
@@ -29,20 +31,12 @@ def savePageview():
 # Flask Main
 if __name__ == '__main__':
     app.config.update(
-        DEBUG = True,
-        COUCHDB_SERVER = COUCHDB_SERVER,
-        COUCHDB_DATABASE = COUCHDB_DATABASE
+        DEBUG = True
     )
 
     # CouchDB Setup
-    manager = CouchDBManager()
-    manager.setup(app)
-
-    # Install Views
-
-
-    # Sync Database
-    manager.sync(app)
+    couch = couchdb.Server(COUCHDB_SERVER)
+    db = couch[COUCHDB_DATABASE]
 
     # Start Webserver
     app.run(host='0.0.0.0', port=5003)
