@@ -1,5 +1,6 @@
 from flask import Flask, request
 from flaskext.couchdb import CouchDBManager
+import json
 app = Flask(__name__)
 
 # Config settings
@@ -18,7 +19,10 @@ def home():
 def savePageview():
     if request.method == 'POST':
         # Retrieve the data from the request
-        print request.data
+        requestData = request.data
+        jsonRequestData = json.loads(requestData)
+        print jsonRequestData
+
 
     return 'A work in progress'
 
