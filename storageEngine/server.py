@@ -25,8 +25,13 @@ def savePageview():
         # Save the doc in the database
         db.save(jsonRequestData)
 
+        return 'Document Saved'
+    return 'Invalid request type'
 
-    return 'A work in progress'
+@app.route('/capstone/user/<username>')
+def retrieveUserPageviews():
+    # Currently this function ignores the username and retrieves all data
+    return json.dumps(db)
 
 # Flask Main
 if __name__ == '__main__':
