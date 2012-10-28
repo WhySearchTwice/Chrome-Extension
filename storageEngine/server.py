@@ -29,7 +29,7 @@ def savePageview():
     return 'Invalid request type'
 
 @app.route('/capstone/user/<username>')
-def retrieveUserPageviews():
+def retrieveUserPageviews(username=None):
     # Currently this function ignores the username and retrieves all data
     
     allDocuments = []
