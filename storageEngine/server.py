@@ -31,7 +31,13 @@ def savePageview():
 @app.route('/capstone/user/<username>')
 def retrieveUserPageviews():
     # Currently this function ignores the username and retrieves all data
-    return json.dumps(db)
+    
+    allDocuments = []
+    for id in db:
+        # Add each item to list
+        allDocuments.append(db[id])
+
+    return json.dumps(allDocuments)
 
 # Flask Main
 if __name__ == '__main__':
