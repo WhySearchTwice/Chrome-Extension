@@ -11,27 +11,30 @@ COUCHDB_DATABASE = 'capstone'
 
 
 # Flask Routes
-@app.route('/capstone')
+@app.route('/')
 def home():
     return 'Hello World!'
 
-@app.route('/capstone/pageview', methods=['POST'])
+
+@app.route('/pageview', methods=['POST'])
 def savePageview():
     if request.method == 'POST':
         # Retrieve the data from the request
         requestData = request.data
-        jsonRequestData = json.loads(requestData)
-        
+        #jsonRequestData = json.loads(requestData)
+        print requestData
+
         # Save the doc in the database
-        db.save(jsonRequestData)
+        #db.save(jsonRequestData)
 
         return 'Document Saved'
     return 'Invalid request type'
 
-@app.route('/capstone/user/<username>')
+
+@app.route('/user/<username>')
 def retrieveUserPageviews(username=None):
     # Currently this function ignores the username and retrieves all data
-    
+
     allDocuments = []
     for id in db:
         # Add each item to list
@@ -42,7 +45,7 @@ def retrieveUserPageviews(username=None):
 # Flask Main
 if __name__ == '__main__':
     app.config.update(
-        DEBUG = True
+        DEBUG=True
     )
 
     # CouchDB Setup
@@ -50,4 +53,4 @@ if __name__ == '__main__':
     db = couch[COUCHDB_DATABASE]
 
     # Start Webserver
-    app.run(host='0.0.0.0', port=5003)
+    app.run(host='0.0.0.0', port=80)
