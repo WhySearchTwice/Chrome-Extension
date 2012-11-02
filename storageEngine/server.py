@@ -21,11 +21,10 @@ def savePageview():
     if request.method == 'POST':
         # Retrieve the data from the request
         requestData = request.data
-        #jsonRequestData = json.loads(requestData)
-        print requestData
+        jsonRequestData = json.loads(requestData)
 
         # Save the doc in the database
-        #db.save(jsonRequestData)
+        db.save(jsonRequestData)
 
         return 'Document Saved'
     return 'Invalid request type'
