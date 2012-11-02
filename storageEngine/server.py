@@ -31,14 +31,12 @@ def savePageview():
     return 'Invalid request type'
 
 
-@app.route('/user/<username>')
-def retrieveUserPageviews(username=None):
-    # Currently this function ignores the username and retrieves all data
-
+@app.route('/user/<userId>')
+def retrieveUserPageviews(userId=None):
     allDocuments = []
-    for id in db:
+    for row in db.view('pageView/by_userId'):
         # Add each item to list
-        allDocuments.append(db[id])
+        allDocuments.append(row)
 
     return json.dumps(allDocuments)
 
