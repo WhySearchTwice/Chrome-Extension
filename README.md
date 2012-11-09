@@ -1,2 +1,2 @@
-Captsone
+Capstone
 ========
