@@ -16,11 +16,9 @@
    "_id": "_design/stats",
    "language": "javascript",
    "views": {
-       "hitCountByDomain": {
-           "map": "function(doc) { if (doc.type == 'pageView')  emit(null, doc) }"
-       },
-       "by_userId": {
-           "map": "function(doc) { if (doc.type == 'pageView')  emit(doc.userId, doc) }"
+       "hitCountByUrl": {
+           "map": "function(doc) { if (doc.type == 'pageView')  emit(doc.pageUrl, 1) }",
+           "reduce": "function(key, values, rereduce) { return sum(values) }"
        }
    }
 }
