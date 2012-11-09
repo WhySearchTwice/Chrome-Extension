@@ -4,9 +4,15 @@ var capstone = {
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status == 'loading') {
+        // Create an object representing the page that was just opened
         var page = {
-            url: changeInfo.url || tab.url
+            pageUrl: changeInfo.url || tab.url,
+            windowId: tab.windowId,
+            pageOpenTime: (new Date).getTime();
         };
+
+        // TODO: Change this to submit the previous page the was viewed, not the page that is being opened
+
         capstone.history.push(page);
         console.log('Sending: ' + page.url);
         post('http://ec2-174-129-49-253.compute-1.amazonaws.com/pageview', page);
