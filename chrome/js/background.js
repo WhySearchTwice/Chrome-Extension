@@ -9,7 +9,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         };
         capstone.history.push(page);
         console.log('Sending: ' + page.url);
-        post('http://emberdb.com/capstone/pageview', page);
+        post('http://ec2-174-129-49-253.compute-1.amazonaws.com/pageview', page);
     }
 });
 
