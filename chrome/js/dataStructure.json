@@ -1,0 +1,13 @@
+"windows": {
+    "<window id>": {
+        "<tab id>": {
+            "currentTabs": [
+                {
+                    "pageUrl": "<A Currently Open Tab>",
+                    "pageLoadTime": 123456678
+                }
+            ]
+        },
+        "windowOpened": 123455678
+    }
+}
