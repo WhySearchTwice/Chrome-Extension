@@ -44,6 +44,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         // Create an object representing the page that was just opened
         console.log('Creating new page object...');
         var page = {
+            type: "pageView",
             tabId: tab.id,
             pageUrl: changeInfo.url || tab.url,
             windowId: tab.windowId,
