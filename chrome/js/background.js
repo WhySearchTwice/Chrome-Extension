@@ -1,6 +1,5 @@
 // Remote data store
 var SERVER = 'http://ec2-174-129-49-253.compute-1.amazonaws.com';
-var DEBUG = true;
 
 // Library of tabs in active session yet to be submitted
 // When a page is navigated away from, the view will be submitted and removed
