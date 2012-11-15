@@ -1,6 +1,7 @@
 from flask import Flask, request
 import couchdb
 import json
+import uuid
 app = Flask(__name__)
 
 # Config settings
@@ -14,6 +15,12 @@ COUCHDB_DATABASE = 'capstone'
 @app.route('/')
 def home():
     return 'Hello World!'
+
+
+@app.route('/guid')
+def generateGuid():
+    newUuid = uuid.uuid1()
+    return str(newUuid)
 
 
 @app.route('/pageview', methods=['POST'])
