@@ -8,6 +8,15 @@ var session = localStorage.session || {
     windows: {}
 };
 
+// UserID to include with all URL submissions
+var userId = localStorage.userId;
+var guid = localStorage.guid;
+
+if(guid == null) {
+    // Retrieve a new GUID for this computer
+    retrieveNewGuid();
+}
+
 // Persist session data to localStorage if background page is reloaded or closed
 window.onUnload = function() {
     console.log('Background page close detected, Saving to localStorage...');
@@ -90,10 +99,50 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     console.groupEnd();
 });
 
+function retrieveNewGuid() {
+    console.group();
+    console.log('Requesting new guid...');
+
+    // Perform AJAX call to SERVER/guid to retrieve new GUID
+    var request = new XMLHttpRequest();
+        request.open('GET', SERVER + '/guid', true);
+        request.setRequestHeader('Content-Type', 'text/plain');
+        request.onreadystatechange = function () {
+            console.log('Response received.');
+            if (request.readyState == 4 && request.status == 200) {
+                console.log('Retrieved guid: ' + request.responseText);
+
+                // Store the GUID in localstorage & update local copy
+                localStorage.guid = request.responseText;
+                guid = request.responseText;
+
+                console.groupEnd();
+            }
+        };
+        request.send();
+}
+
 function preparePageForSend(page) {
     console.group();
     console.log('Adding close time to page object in session...');
     page.pageCloseTime = (new Date()).getTime();
+
+    console.log('Adding userId to page object...');
+    page.userId = userId;
+    page.deviceGuid = guid;
+
+    if(page.userId == null) {
+        // Attempt to reload the userId
+        userId = localStorage.userId;
+        page.userId = userId;
+
+        // If still null, issue warning
+        if(userId == null) {
+            console.log('userId is null! Do something!');
+        }
+    } else if (page.deviceGuid == null) {
+        console.log('deviceGuid is null! Do something!');
+    }
 
     console.groupEnd();
     return page;
@@ -125,6 +174,13 @@ function sendAndDeleteTab(windowId, tabId, callback) {
 // Send the page object to the server for storage
 function post(url, data, callback) {
     console.group();
+
+    // Verify that the page is valid
+    if(data.userId == null || data.deviceGuid == null) {
+        console.log('UserID or DeviceGuid missing. Aborting send');
+        return;
+    }
+
     console.log('Sending: ');
     console.log(data);
     var request = new XMLHttpRequest();
