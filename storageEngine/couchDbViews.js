@@ -7,7 +7,7 @@
            "map": "function(doc) { if (doc.type == 'pageView')  emit(null, doc) }"
        },
        "by_userId": {
-           "map": "function(doc) { if (doc.type == 'pageView')  emit(doc.userId, doc) }"
+           "map": "function(doc) { if (doc.type == 'pageView' && doc.userId != null)  emit(doc.userId, doc) }"
        }
    }
 }
