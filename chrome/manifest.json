@@ -15,7 +15,6 @@
         "default_popup": "html/popups/default.html"
     },
     "background": {
-        "persistent": true,
         "scripts": [
             "js/jquery.js",
             "js/background.js"

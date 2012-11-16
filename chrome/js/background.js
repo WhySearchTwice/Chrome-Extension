@@ -32,8 +32,8 @@ chrome.windows.onRemoved.addListener(function(windowId) {
         // get all tabs in window
         console.log('Sending tabs...');
         for (var tabId in session.windows[windowId].tabs) {
-            // Send this tab and remove
-            sendAndDeleteTab(windowId, tabId);
+            // Send this tab
+            sendPage(windowId, tabId);
         }
         // Remove the window from the storage
         console.log('Removing window from session');
@@ -52,7 +52,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 
         // Create an object representing the page that was just opened
         console.log('Creating new page object...');
-        var page = {
+        var newPage = {
             type: "pageView",
             tabId: tab.id,
             pageUrl: changeInfo.url || tab.url,
@@ -63,8 +63,8 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         // Check if there is a tab with this ID already. If so, submit it
         if (tab.windowId in session.windows &&
             tabId in session.windows[tab.windowId].tabs) {
-            console.log('Sending previous page...');
-            sendAndDeleteTab(tab.windowId, tab.id);
+            console.log('Calling send page...');
+            sendPage(tab.windowId, tabId);
         }
 
         // Store this new page
@@ -73,7 +73,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
                 tabs: {}
             };
         }
-        session.windows[tab.windowId].tabs[tab.id] = page;
+        session.windows[tab.windowId].tabs[tab.id] = newPage;
 
         console.groupEnd();
     }
@@ -89,7 +89,14 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     console.log('Tab closed');
     for (var windowId in session.windows) {
         if (tabId in session.windows[windowId].tabs) {
-            sendAndDeleteTab(windowId, tabId);
+            // Send the page
+            console.log('Sending tab before close...');
+            sendPage(windowId, tabId);
+
+            // Delete the page from storage
+            console.log('Deleting the page from storage');
+            delete(session.windows[windowId].tabs[tabId]);
+
             console.groupEnd();
             return;
         }
@@ -120,6 +127,7 @@ function retrieveNewGuid() {
             }
         };
         request.send();
+    console.groupEnd();
 }
 
 function preparePageForSend(page) {
@@ -149,26 +157,27 @@ function preparePageForSend(page) {
 }
 
 // Send the tab object, then remove from the session
-function sendAndDeleteTab(windowId, tabId, callback) {
-    console.group();
-    // Retrieve the page
-    console.log('Retrieving page...');
-    page = session.windows[windowId].tabs[tabId];
+function sendPage(windowId, tabId) {
+    // Contain the scope within a closure (fuck callbacks)
+    (function(windowId, tabId) {
+        return function() {
+            console.group();
 
-    // Prepare the page
-    console.log('Preparing page...');
-    page = preparePageForSend(page);
+            // Retrieve the page
+            console.log('Retrieving the page to submit...');
+            page = session.windows[windowId].tabs[tabId];
 
-    // Send the page
-    console.log('Sending page...');
-    post(SERVER + '/pageview', page, function() {
-        // Delete the page from storage
-        console.log('Deleting page from session...');
-        delete session.windows[windowId].tabs[tabId];
-        console.groupEnd();
+            // Prepare the page
+            console.log('Preparing page...');
+            page = preparePageForSend(page);
 
-        if (typeof callback === 'function') { callback(); }
-    });
+            // Send the page
+            console.log('Sending page...');
+            post(SERVER + '/pageview', page);
+
+            console.groupEnd();
+        };
+    })(windowId, tabId)();
 }
 
 // Send the page object to the server for storage
@@ -194,4 +203,6 @@ function post(url, data, callback) {
             }
         };
         request.send(JSON.stringify(data));
+
+    console.groupEnd();
 }
