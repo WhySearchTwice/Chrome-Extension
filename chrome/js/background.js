@@ -188,6 +188,9 @@ function post(url, data, callback) {
     if(data.userId == null || data.deviceGuid == null) {
         console.log('UserID or DeviceGuid missing. Aborting send');
         return;
+    } else if(data.pageUrl == "chrome://newtab/") {
+        console.log('Ignoring a newTab pageView');
+        return;
     }
 
     console.log('Sending: ');
@@ -196,8 +199,8 @@ function post(url, data, callback) {
         request.open('POST', url, true);
         request.setRequestHeader('Content-Type', 'text/plain');
         request.onreadystatechange = function () {
-            console.log('Response received.');
             if (request.readyState == 4 && request.status == 200) {
+                console.log('Response received.');
                 if (typeof callback === 'function') { callback(); }
                 console.groupEnd();
             }
