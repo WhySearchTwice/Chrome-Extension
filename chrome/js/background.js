@@ -1,34 +1,43 @@
-// Remote data store
+/**
+ * Base URL of database API where all information is submitted.
+ */
 var SERVER = 'http://ec2-174-129-49-253.compute-1.amazonaws.com';
 
-// Library of tabs in active session yet to be submitted
-// When a page is navigated away from, the view will be submitted and removed
-// Attempt to recover session data from localStorage on load
+/**
+ * A library of all known windows and the tabs they contain. Will be persisted to
+ * localStorage when chrome is closed. Load from localStorage or create new.
+ */
 var session = localStorage.session || {
     windows: {}
 };
 
-// UserID to include with all URL submissions
-var userId = localStorage.userId || null;
+/**
+ * userId must be submitted with every request. Consists of email address of user
+ * and is stored to localStorage after initial retrieval. Retrieve if missing.
+ */
+var userId = localStorage.userId || retrieveUserId();
+if (userId === null) { retrieveUserId(); }
+
+/**
+ * guid uniquely identifies this device and will be stored to localStorage after
+ * initial generation. Retrieve if missing.
+ */
 var guid = localStorage.guid || null;
+if (guid === null) { retrieveNewGuid(); }
 
-if (userId === null) {
-    // Retrieve a userId for this computer
-    retrieveUserId();
-}
-
-if (guid === null) {
-    // Retrieve a new GUID for this computer
-    retrieveNewGuid();
-}
-
-// Persist session data to localStorage if background page is reloaded or closed
+/**
+ * Persist session data to localStorage if background page is reloaded or closed.
+ */
 window.onUnload = function() {
     console.log('Background page close detected, Saving to localStorage...');
     localStorage.session = session;
 };
 
-// Listen for when a window is closed (submit all pages that are open in this window)
+/**
+ * Event Listener - Window Close
+ * Submit each tab that is contained in this window. Delete window from session
+ * after complete.
+ */
 chrome.windows.onRemoved.addListener(function(windowId) {
     console.group();
     console.log('Window ' + windowId + ' closed.');
@@ -49,7 +58,11 @@ chrome.windows.onRemoved.addListener(function(windowId) {
     console.groupEnd();
 });
 
-// Listen for a page being loaded or updated
+/**
+ * Event Listener - Tab Updated
+ * Check if the tab is our storage, if so submit it. Create an entry for the
+ * new page that has been loaded and store it in the session for its containing window.
+ */
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
         console.group();
@@ -84,6 +97,12 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     }
 });
 
+/**
+ * Event Listener - Tab Attached (to a new window)
+ * Listen for tabs being attached to new windows. Create a new group for the window
+ * in the session if it does not exist and add this tab to it. Remove the tab from the
+ * old group.
+ */
 chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
     console.group();
     var newWindowId = attachInfo.newWindowId;
@@ -119,7 +138,10 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
     console.groupEnd();
 });
 
-// Listen for a tab being closed. Submit this tab and remove from storage
+/**
+ * Event Listener - Tab closed
+ * Listen for tabs being closed. Submit the tab and remove from the session.
+ */
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     // If a window is being closed, ignore this event
     if (removeInfo.isWindowClosing) { return; }
@@ -146,6 +168,10 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     console.groupEnd();
 });
 
+/**
+ * Every device must have a unique GUID. Retrieve one from the server, save
+ * to the local variable and localStorage.
+ */
 function retrieveNewGuid() {
     console.group();
     console.log('Requesting new guid...');
@@ -170,7 +196,11 @@ function retrieveNewGuid() {
     console.groupEnd();
 }
 
-function preparePageForSend(page) {
+/**
+ * Add required fields to the pageView object such as userId and deviceGuid
+ * and pageCloseTime.
+ */
+function preparePageviewForSend(page) {
     console.group();
     console.log('Adding close time to page object in session...');
     page.pageCloseTime = (new Date()).getTime();
@@ -209,7 +239,7 @@ function sendPage(windowId, tabId) {
 
             // Prepare the page
             console.log('Preparing page...');
-            page = preparePageForSend(page);
+            page = preparePageviewForSend(page);
 
             // Send the page
             console.log('Sending page...');
