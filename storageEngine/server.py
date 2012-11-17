@@ -23,6 +23,14 @@ def generateGuid():
     return str(newUuid)
 
 
+@app.route('/cleanup')
+def cleanup():
+    # Clean up any items in the database that do not have a userId
+    for row in db.view('pageView/null_userId'):
+        db.delete(db[row.id])
+    return "All clean"
+
+
 @app.route('/pageview', methods=['POST'])
 def savePageview():
     if request.method == 'POST':

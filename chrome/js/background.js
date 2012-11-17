@@ -84,6 +84,41 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     }
 });
 
+chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
+    console.group();
+    var newWindowId = attachInfo.newWindowId;
+
+    // Create a new window if necessary
+    if (!(newWindowId in session.windows)) {
+        console.log('Creating a new window in session: window ' + newWindowId);
+        session.windows[newWindowId] = {
+            tabs: {}
+        };
+    }
+
+    // Find the tab that is being moved
+    for (var windowId in session.windows) {
+        if (tabId in session.windows[windowId].tabs) {
+            console.log('Found the old tab location: window ' + windowId);
+
+            // For some reason this method is called twice. Super weird
+            if(windowId == newWindowId) {
+                console.log('source windowId == destination windowId. Aboring move');
+                console.groupEnd();
+                return;
+            }
+
+            page = session.windows[windowId].tabs[tabId];
+            page.windowId = newWindowId;
+
+            console.log('Saving tab to new window location: window ' + newWindowId);
+            session.windows[newWindowId].tabs[tabId] = page;
+            delete(session.windows[windowId].tabs[tabId]);
+        }
+    }
+    console.groupEnd();
+});
+
 // Listen for a tab being closed. Submit this tab and remove from storage
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     // If a window is being closed, ignore this event
@@ -91,7 +126,7 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 
     // else
     console.group();
-    console.log('Tab closed');
+    console.log('Tab ' + tabId + ' closed');
     for (var windowId in session.windows) {
         if (tabId in session.windows[windowId].tabs) {
             // Send the page
