@@ -28,10 +28,10 @@ def cleanup():
     # Clean up any items in the database that do not have a userId
     for doc in db:
         # Don't delete the design documents
-        if doc._id.startswith("_design"):
+        if doc.startswith("_design"):
             continue
 
-        if "userId" not in doc:
+        if "userId" not in db[doc]:
             db.delete(doc)
 
 
