@@ -16,7 +16,8 @@
     },
     "background": {
         "scripts": [
-            "js/jquery.js",
+            "js/chrome_ex_oauthsimple.js",
+            "js/chrome_ex_oauth.js",
             "js/background.js"
         ]
     },
@@ -46,6 +47,9 @@
         "notifications",
         "storage",
         "tabs",
-        "webNavigation"
+        "webNavigation",
+        "https://www.google.com/accounts/OAuthGetRequestToken",
+        "https://www.google.com/accounts/OAuthAuthorizeToken",
+        "https://www.google.com/accounts/OAuthGetAccessToken"
     ]
 }

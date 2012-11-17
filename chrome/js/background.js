@@ -9,10 +9,15 @@ var session = localStorage.session || {
 };
 
 // UserID to include with all URL submissions
-var userId = localStorage.userId;
-var guid = localStorage.guid;
+var userId = localStorage.userId || null;
+var guid = localStorage.guid || null;
 
-if(guid == null) {
+if (userId === null) {
+    // Retrieve a userId for this computer
+    retrieveUserId();
+}
+
+if (guid === null) {
     // Retrieve a new GUID for this computer
     retrieveNewGuid();
 }
@@ -139,14 +144,14 @@ function preparePageForSend(page) {
     page.userId = userId;
     page.deviceGuid = guid;
 
-    if(page.userId == null) {
+    if (page.userId == null) {
         // Attempt to reload the userId
         userId = localStorage.userId;
         page.userId = userId;
 
         // If still null, issue warning
-        if(userId == null) {
-            console.log('userId is null! Do something!');
+        if (userId == null && /^https:\/\/accounts.google.com\/OAuthAuthorizeToken*/.test(page.url)) {
+            window.location.reload();
         }
     } else if (page.deviceGuid == null) {
         console.log('deviceGuid is null! Do something!');
@@ -185,10 +190,10 @@ function post(url, data, callback) {
     console.group();
 
     // Verify that the page is valid
-    if(data.userId == null || data.deviceGuid == null) {
+    if (data.userId == null || data.deviceGuid == null) {
         console.log('UserID or DeviceGuid missing. Aborting send');
         return;
-    } else if(data.pageUrl == "chrome://newtab/") {
+    } else if (data.pageUrl == "chrome://newtab/") {
         console.log('Ignoring a newTab pageView');
         return;
     }
@@ -208,4 +213,41 @@ function post(url, data, callback) {
         request.send(JSON.stringify(data));
 
     console.groupEnd();
+}
+
+function retrieveUserId() {
+    console.log('Trying to fetch userId from Chrome Sync...');
+    chrome.storage.sync.get('userId', function(response) {
+        if (typeof response.userId !== 'undefined') {
+            userId = localStorage.userId = response.userId;
+        } else {
+            console.log('Trying to fetch userId via oauth...');
+            var oauth = ChromeExOAuth.initBackgroundPage({
+                'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
+                'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+                'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
+                'consumer_key'   : 'anonymous',
+                'consumer_secret': 'anonymous',
+                'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
+                'app_name'       : 'Capstone'
+            });
+
+            console.log('Authorizing with Google...');
+            oauth.authorize(function() {
+                console.log('Authorized. Fetching email...');
+                var url = 'https://www.googleapis.com/userinfo/email';
+                var request = {
+                    'method': 'GET',
+                    'parameters': {'alt': 'json'}
+                };
+                oauth.sendSignedRequest(url, function(response) {
+                    userId = localStorage.userId = JSON.parse(response).data.email;
+                    console.log('Email saved. Syncing email...');
+                    chrome.storage.sync.set({'userId': userId}, function() {
+                        console.log('Email synced.');
+                    });
+                }, request);
+            });
+        }
+    });
 }
