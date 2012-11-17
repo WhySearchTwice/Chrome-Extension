@@ -226,7 +226,10 @@ function preparePageviewForSend(page) {
     return page;
 }
 
-// Send the tab object, then remove from the session
+/**
+ * Send a pageView object. Creates a closure that encapsulates the scope of the page
+ * object while passing it between various functions before sending it.
+ */
 function sendPage(windowId, tabId) {
     // Contain the scope within a closure (fuck callbacks)
     (function(windowId, tabId) {
@@ -250,7 +253,10 @@ function sendPage(windowId, tabId) {
     })(windowId, tabId)();
 }
 
-// Send the page object to the server for storage
+/**
+ * POST a pageView object to the server. Validates that the object contains a
+ * userId and is not a newtab page before sending.
+ */
 function post(url, data, callback) {
     console.group();
 
@@ -280,6 +286,9 @@ function post(url, data, callback) {
     console.groupEnd();
 }
 
+/**
+ * Retrieve the email address of the user and saves to the userId and in localStorage.
+ */
 function retrieveUserId() {
     console.log('Trying to fetch userId from Chrome Sync...');
     chrome.storage.sync.get('userId', function(response) {
