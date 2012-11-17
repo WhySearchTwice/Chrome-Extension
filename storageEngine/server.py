@@ -26,14 +26,15 @@ def generateGuid():
 @app.route('/cleanup')
 def cleanup():
     # Clean up any items in the database that do not have a userId
-    for doc in db:
+    for docId in db:
         # Don't delete the design documents
-        if doc.startswith("_design"):
+        if docId.startswith("_design"):
             continue
 
-        if "userId" not in db[doc]:
+        doc = db[docId]
+        if "userId" not in doc:
             db.delete(doc)
-
+    return "All clean"
 
 
 @app.route('/pageview', methods=['POST'])
