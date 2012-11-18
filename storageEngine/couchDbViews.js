@@ -1,6 +1,5 @@
 {
     "_id": "_design/pageView",
-    "_rev": "1-5207d9b532a69c99c84892efd2c11b0b",
     "language": "javascript",
     "views": {
         "all": {
@@ -13,6 +12,22 @@
             "map": "function(doc) { if (doc.type == 'pageView' && doc.userId == null)  emit(doc.null, doc) }"
         }
     }
+}
+
+{
+   "_id": "_design/focusChange",
+   "language": "javascript",
+   "views": {
+       "all": {
+           "map": "function(doc) { if (doc.type == 'focusChange')  emit(null, doc) }"
+       },
+       "by_userId": {
+           "map": "function(doc) { if (doc.type == 'focusChange' && doc.userId != null)  emit(doc.userId, doc) }"
+       },
+       "null_userId": {
+           "map": "function(doc) { if (doc.type == 'focusChange' && doc.userId == null)  emit(doc.null, doc) }"
+       }
+   }
 }
 
 {

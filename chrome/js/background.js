@@ -101,6 +101,23 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 });
 
 /**
+ * Event Listener - Tab Gains Focus
+ * Called whenever a tab gains focus. Send an even with the tabID and windowId, and other
+ * standard fields to write a trail of what the user is looking at.
+ */
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    var focusChange = {
+        type: "focusChange",
+        tabId: activeInfo.tabId,
+        windowId: activeInfo.windowId,
+        time: (new Date()).getTime()
+    };
+
+    // Send this page to the server
+    sendFocus(focusChange);
+});
+
+/**
  * Event Listener - Tab Attached (to a new window)
  * Listen for tabs being attached to new windows. Create a new group for the window
  * in the session if it does not exist and add this tab to it. Remove the tab from the
@@ -233,6 +250,19 @@ function sendPage(windowId, tabId) {
     (function(page) {
         return function() { post(SERVER + '/pageview', page); };
     })(page)();
+}
+
+function sendFocus(focusChange) {
+    // Prepare the focusChange
+    console.log('Perparing a focus change event...');
+    focusChange = preparePageviewForSend(focusChange);
+
+    // We don't actually want the pageCloseTime
+    delete(focusChange.pageCloseTime);
+
+    // Send the focusChange
+    console.log('Sending focusChange...');
+    post(SERVER+ '/pageview', focusChange);
 }
 
 /**
