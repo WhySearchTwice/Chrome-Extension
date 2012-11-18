@@ -1,26 +1,32 @@
 /**
  * Base URL of database API where all information is submitted.
+ *
+ * @type String
  */
 var SERVER = 'http://ec2-174-129-49-253.compute-1.amazonaws.com';
 
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
  * localStorage when chrome is closed. Load from localStorage or create new.
+ *
+ * @type Object
  */
-var session = localStorage.session || {
-    windows: {}
-};
+var session = localStorage.session || { windows: {} };
 
 /**
  * userId must be submitted with every request. Consists of email address of user
  * and is stored to localStorage after initial retrieval. Retrieve if missing.
+ *
+ * @type String
  */
-var userId = localStorage.userId || retrieveUserId();
+var userId = localStorage.userId || null;
 if (userId === null) { retrieveUserId(); }
 
 /**
  * guid uniquely identifies this device and will be stored to localStorage after
  * initial generation. Retrieve if missing.
+ *
+ * @type String
  */
 var guid = localStorage.guid || null;
 if (guid === null) { retrieveNewGuid(); }
@@ -29,7 +35,7 @@ if (guid === null) { retrieveNewGuid(); }
  * Persist session data to localStorage if background page is reloaded or closed.
  */
 window.onUnload = function() {
-    console.log('Background page close detected, Saving to localStorage...');
+    console.log('Background page unloading. Saving to localStorage...');
     localStorage.session = session;
 };
 
@@ -39,7 +45,6 @@ window.onUnload = function() {
  * after complete.
  */
 chrome.windows.onRemoved.addListener(function(windowId) {
-    console.group();
     console.log('Window ' + windowId + ' closed.');
     // Check if window exists
     if (windowId in session.windows) {
@@ -52,10 +57,11 @@ chrome.windows.onRemoved.addListener(function(windowId) {
         // Remove the window from the storage
         console.log('Removing window from session');
         delete session.windows[windowId];
+        endLogEvent();
     } else {
         console.warn('Window not in session, no action taken');
+        endLogEvent();
     }
-    console.groupEnd();
 });
 
 /**
@@ -65,7 +71,6 @@ chrome.windows.onRemoved.addListener(function(windowId) {
  */
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
-        console.group();
         console.log('Tab loading: ' + changeInfo.url || tab.url);
 
         // Create an object representing the page that was just opened
@@ -83,17 +88,15 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
             tabId in session.windows[tab.windowId].tabs) {
             console.log('Calling send page...');
             sendPage(tab.windowId, tabId);
+        } else {
+            endLogEvent();
         }
 
         // Store this new page
         if (!(tab.windowId in session.windows)) {
-            session.windows[tab.windowId] = {
-                tabs: {}
-            };
+            session.windows[tab.windowId] = { tabs: {} };
         }
         session.windows[tab.windowId].tabs[tab.id] = newPage;
-
-        console.groupEnd();
     }
 });
 
@@ -104,7 +107,6 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
  * old group.
  */
 chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
-    console.group();
     var newWindowId = attachInfo.newWindowId;
 
     // Create a new window if necessary
@@ -121,9 +123,9 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
             console.log('Found the old tab location: window ' + windowId);
 
             // For some reason this method is called twice. Super weird
-            if(windowId == newWindowId) {
+            if (windowId == newWindowId) {
                 console.log('source windowId == destination windowId. Aboring move');
-                console.groupEnd();
+                endLogEvent();
                 return;
             }
 
@@ -132,10 +134,10 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
 
             console.log('Saving tab to new window location: window ' + newWindowId);
             session.windows[newWindowId].tabs[tabId] = page;
-            delete(session.windows[windowId].tabs[tabId]);
+            delete session.windows[windowId].tabs[tabId];
         }
     }
-    console.groupEnd();
+    endLogEvent();
 });
 
 /**
@@ -147,7 +149,6 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     if (removeInfo.isWindowClosing) { return; }
 
     // else
-    console.group();
     console.log('Tab ' + tabId + ' closed');
     for (var windowId in session.windows) {
         if (tabId in session.windows[windowId].tabs) {
@@ -157,15 +158,13 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 
             // Delete the page from storage
             console.log('Deleting the page from storage');
-            delete(session.windows[windowId].tabs[tabId]);
-
-            console.groupEnd();
+            delete session.windows[windowId].tabs[tabId];
             return;
         }
     }
 
     console.warn('Tab not in session, no action taken');
-    console.groupEnd();
+    endLogEvent();
 });
 
 /**
@@ -173,27 +172,12 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
  * to the local variable and localStorage.
  */
 function retrieveNewGuid() {
-    console.group();
     console.log('Requesting new guid...');
-
-    // Perform AJAX call to SERVER/guid to retrieve new GUID
-    var request = new XMLHttpRequest();
-        request.open('GET', SERVER + '/guid', true);
-        request.setRequestHeader('Content-Type', 'text/plain');
-        request.onreadystatechange = function () {
-            console.log('Response received.');
-            if (request.readyState == 4 && request.status == 200) {
-                console.log('Retrieved guid: ' + request.responseText);
-
-                // Store the GUID in localstorage & update local copy
-                localStorage.guid = request.responseText;
-                guid = request.responseText;
-
-                console.groupEnd();
-            }
-        };
-        request.send();
-    console.groupEnd();
+    post(SERVER + '/guid', null, function(request) {
+        // Store the GUID in localstorage & update local copy
+        guid = localStorage.guid = request.responseText;
+        console.log('Retrieved guid: ' + guid);
+    });
 }
 
 /**
@@ -201,7 +185,6 @@ function retrieveNewGuid() {
  * and pageCloseTime.
  */
 function preparePageviewForSend(page) {
-    console.group();
     console.log('Adding close time to page object in session...');
     page.pageCloseTime = (new Date()).getTime();
 
@@ -209,63 +192,70 @@ function preparePageviewForSend(page) {
     page.userId = userId;
     page.deviceGuid = guid;
 
-    if (page.userId == null) {
+    if (page.userId === null) {
         // Attempt to reload the userId
         userId = localStorage.userId;
-        page.userId = userId;
 
-        // If still null, issue warning
-        if (userId == null && /^https:\/\/accounts.google.com\/OAuthAuthorizeToken*/.test(page.url)) {
+        // If still null, reload extension to fetch userId
+        // Make exception for userId oauth pages
+        if (userId === null && /^https:\/\/accounts.google.com\/OAuthAuthorizeToken*/.test(page.url)) {
             window.location.reload();
+        } else {
+            page.userId = userId;
         }
-    } else if (page.deviceGuid == null) {
+    }
+
+    if (page.deviceGuid === null) {
         console.log('deviceGuid is null! Do something!');
     }
 
-    console.groupEnd();
     return page;
 }
 
 /**
  * Send a pageView object. Creates a closure that encapsulates the scope of the page
  * object while passing it between various functions before sending it.
+ *
+ * @param Int windowId Chrome's window id
+ * @param Int tabId Chrome's tab id
  */
 function sendPage(windowId, tabId) {
-    // Contain the scope within a closure (fuck callbacks)
-    (function(windowId, tabId) {
-        return function() {
-            console.group();
+    // Retrieve the page
+    console.log('Retrieving the page to submit...');
+    page = session.windows[windowId].tabs[tabId];
 
-            // Retrieve the page
-            console.log('Retrieving the page to submit...');
-            page = session.windows[windowId].tabs[tabId];
+    // Prepare the page
+    console.log('Preparing page...');
+    page = preparePageviewForSend(page);
 
-            // Prepare the page
-            console.log('Preparing page...');
-            page = preparePageviewForSend(page);
-
-            // Send the page
-            console.log('Sending page...');
-            post(SERVER + '/pageview', page);
-
-            console.groupEnd();
-        };
-    })(windowId, tabId)();
+    // Send the page (use closure to keep current state of page in local scope)
+    console.log('Sending page...');
+    (function(page) {
+        return function() { post(SERVER + '/pageview', page); };
+    })(page)();
 }
 
 /**
  * POST a pageView object to the server. Validates that the object contains a
  * userId and is not a newtab page before sending.
+ *
+ * @author ansel
+ *
+ * @param String url remote target of POST
+ * @param Mixed data String or Object to be POSTed
+ * @param Function callback a function to be called on success. Will be passed the request object
  */
 function post(url, data, callback) {
-    console.group();
-
     // Verify that the page is valid
-    if (data.userId == null || data.deviceGuid == null) {
+    if (url === SERVER + '/guid') {
+        // allow guid requests through validation
+    } else if (data.userId === null || data.deviceGuid === null) {
         console.log('UserID or DeviceGuid missing. Aborting send');
+
         return;
     } else if (data.pageUrl == "chrome://newtab/") {
         console.log('Ignoring a newTab pageView');
+
         return;
     }
 
@@ -276,14 +266,13 @@ function post(url, data, callback) {
         request.setRequestHeader('Content-Type', 'text/plain');
         request.onreadystatechange = function () {
             if (request.readyState == 4 && request.status == 200) {
-                console.log('Response received.');
-                if (typeof callback === 'function') { callback(); }
-                console.groupEnd();
+                console.log('Response received:');
+                console.log(request);
+                endLogEvent();
+                if (typeof callback === 'function') { callback(request); }
             }
         };
         request.send(JSON.stringify(data));
-
-    console.groupEnd();
 }
 
 /**
@@ -300,8 +289,8 @@ function retrieveUserId() {
                 'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
                 'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
                 'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
-                'consumer_key'   : 'anonymous',
-                'consumer_secret': 'anonymous',
+                'consumer_key'   : 'anonymous', // TODO: Register app with Google
+                'consumer_secret': 'anonymous', // TODO: Register app with Google
                 'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
                 'app_name'       : 'Capstone'
             });
@@ -324,4 +313,8 @@ function retrieveUserId() {
             });
         }
     });
+}
+
+function endLogEvent() {
+    console.log('%c\n============================================================\n', 'background:#999;color:#fff;');
 }

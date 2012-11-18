@@ -1,3 +1,1 @@
-window.onload = function() {
-    ChromeExOAuth.initCallbackPage();
-}
+window.onload = function() { ChromeExOAuth.initCallbackPage(); };
