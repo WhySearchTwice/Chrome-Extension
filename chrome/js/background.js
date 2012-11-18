@@ -190,7 +190,7 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
  */
 function retrieveNewGuid() {
     console.log('Requesting new guid...');
-    post(SERVER + '/guid', null, function(request) {
+    get(SERVER + '/guid', function(request) {
         // Store the GUID in localstorage & update local copy
         guid = localStorage.guid = request.responseText;
         console.log('Retrieved guid: ' + guid);
@@ -266,8 +266,8 @@ function sendFocus(focusChange) {
 }
 
 /**
- * POST a pageView object to the server. Validates that the object contains a
- * userId and is not a newtab page before sending.
+ * POST data to the server. Wrapper for AJAX
+ * Validates that the object contains a userId and is not a newtab page before sending.
  *
  * @author ansel
  *
@@ -277,22 +277,38 @@ function sendFocus(focusChange) {
  */
 function post(url, data, callback) {
     // Verify that the page is valid
-    if (url === SERVER + '/guid') {
-        // allow guid requests through validation
-    } else if (data.userId === null || data.deviceGuid === null) {
+    if (data.userId === null || data.deviceGuid === null) {
         console.log('UserID or DeviceGuid missing. Aborting send');
-
         return;
     } else if (data.pageUrl == "chrome://newtab/") {
         console.log('Ignoring a newTab pageView');
-
         return;
     }
+    ajax('POST', url, data, callback);
+}
 
+/**
+ * GET data from the server. Wrapper for AJAX
+ *
+ * @param String url remote target of POST
+ * @param Function callback a function to be called on success. Will be passed the request object
+ */
+function get(url, callback) {
+    ajax('GET', url, null, callback);
+}
+
+/**
+ * AJAX helper function. Do not use this function directly
+ *
+ * @param String url remote target of POST
+ * @param Mixed data String or Object to be POSTed
+ * @param Function callback a function to be called on success. Will be passed the request object
+ */
+function ajax(method, url, data, callback) {
     console.log('Sending: ');
     console.log(data);
     var request = new XMLHttpRequest();
-        request.open('POST', url, true);
+        request.open(method, url, true);
         request.setRequestHeader('Content-Type', 'text/plain');
         request.onreadystatechange = function () {
             if (request.readyState == 4 && request.status == 200) {
@@ -304,6 +320,7 @@ function post(url, data, callback) {
         };
         request.send(JSON.stringify(data));
 }
+
 
 /**
  * Retrieve the email address of the user and saves to the userId and in localStorage.
@@ -345,6 +362,10 @@ function retrieveUserId() {
     });
 }
 
+
+/**
+ * Prints spacer and style divider to log
+ */
 function endLogEvent() {
     console.log('%c\n============================================================\n', 'background:#999;color:#fff;');
 }
