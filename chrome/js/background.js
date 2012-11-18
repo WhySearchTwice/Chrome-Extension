@@ -101,6 +101,36 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 });
 
 /**
+ * Event Listener - URL Committed to Tab
+ * Called whenever a navigation takes place. Will attempt to add information
+ * to the session about what is loading in a tab and how it was started
+ */
+chrome.webNavigation.onCommitted.addListener(function(details) {
+    windowId = findWindowId(details.tabId);
+    if(windowId == null) { return; }
+
+    // Verify that this commit was for the page that is actually being loaded,
+    // not a background page
+    if(details.url == session.windows[windowId].tabs[details.tabId].pageUrl) {
+        // Append information to this page object
+        console.log('Updating pageView object with onCommitted information');
+
+        page = session.windows[windowId].tabs[details.tabId];
+        page.transitionType = details.transitionType;
+        page.transitionQualifiers = details.transitionQualifiers;
+    }
+});
+
+
+chrome.webNavigation.onCompleted.addListener(function(details) {
+    // console.log("Completed: " + details.url);
+});
+
+chrome.webNavigation.onTabReplaced.addListener(function(details) {
+    // console.log("Tab Replaced: New - " + details.tabId + " Old - " + replacedTabId);
+});
+
+/**
  * Event Listener - Tab Gains Focus
  * Called whenever a tab gains focus. Send an even with the tabID and windowId, and other
  * standard fields to write a trail of what the user is looking at.
@@ -185,6 +215,21 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 });
 
 /**
+ * Search through the session looking for a tab with the given tabId.
+ *
+ * @param Int tabId The id of a tab in question to search for
+ * @return Int The windowId that contains the tabId. Null if does not exist
+ */
+function findWindowId(tabId) {
+    for(windowId in session.windows) {
+        if(tabId in session.windows[windowId].tabs) {
+            return windowId;
+        }
+    }
+    return null;
+}
+
+/**
  * Every device must have a unique GUID. Retrieve one from the server, save
  * to the local variable and localStorage.
  */
@@ -223,7 +268,12 @@ function preparePageviewForSend(page) {
     }
 
     if (page.deviceGuid === null) {
-        console.log('deviceGuid is null! Do something!');
+        if(localStorage.guid != null) {
+            guid = localStorage.guid;
+            page.deviceGuid = guid;
+        } else {
+            console.log('deviceGuid is null! Do something!');
+        }
     }
 
     return page;
