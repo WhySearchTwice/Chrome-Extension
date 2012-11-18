@@ -72,31 +72,7 @@ chrome.windows.onRemoved.addListener(function(windowId) {
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
         console.log('Tab loading: ' + changeInfo.url || tab.url);
-
-        // Create an object representing the page that was just opened
-        console.log('Creating new page object...');
-        var newPage = {
-            type: "pageView",
-            tabId: tab.id,
-            pageUrl: changeInfo.url || tab.url,
-            windowId: tab.windowId,
-            pageOpenTime: (new Date()).getTime()
-        };
-
-        // Check if there is a tab with this ID already. If so, submit it
-        if (tab.windowId in session.windows &&
-            tabId in session.windows[tab.windowId].tabs) {
-            console.log('Calling send page...');
-            sendPage(tab.windowId, tabId);
-        } else {
-            endLogEvent();
-        }
-
-        // Store this new page
-        if (!(tab.windowId in session.windows)) {
-            session.windows[tab.windowId] = { tabs: {} };
-        }
-        session.windows[tab.windowId].tabs[tab.id] = newPage;
+        addPage(tab);
     }
 });
 
@@ -107,11 +83,11 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
  */
 chrome.webNavigation.onCommitted.addListener(function(details) {
     windowId = findWindowId(details.tabId);
-    if(windowId == null) { return; }
+    if (windowId === null) { return; }
 
     // Verify that this commit was for the page that is actually being loaded,
     // not a background page
-    if(details.url == session.windows[windowId].tabs[details.tabId].pageUrl) {
+    if (details.url == session.windows[windowId].tabs[details.tabId].pageUrl) {
         // Append information to this page object
         console.log('Updating pageView object with onCommitted information');
 
@@ -142,6 +118,8 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         windowId: activeInfo.windowId,
         time: (new Date()).getTime()
     };
+
+    addPage(activeInfo.tabId);
 
     // Send this page to the server
     sendFocus(focusChange);
@@ -215,14 +193,55 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 });
 
 /**
+ * Adds page to session
+ *
+ * @param Mixed tab String tabId or Tab tab
+ */
+function addPage(tab) {
+    console.log('Creating new page object...');
+    if (typeof tab === 'String') {
+        console.log('Passed tabId, getting tab object...');
+        chrome.tab.get(tab, function(tab) {
+            addPage(tab);
+        });
+        return;
+    }
+
+    // Create an object representing the page that was just opened
+    var newPage = {
+        type: 'pageView',
+        tabId: tab.id,
+        pageUrl: tab.url,
+        windowId: tab.windowId,
+        pageOpenTime: (new Date()).getTime()
+    };
+
+    // Check if there is a tab with this ID already. If so, submit it
+    if (tab.windowId in session.windows &&
+        tab.id in session.windows[tab.windowId].tabs) {
+        console.log('Calling send page...');
+        sendPage(tab.windowId, tab.id);
+    } else {
+        endLogEvent();
+    }
+
+    // Store this new page
+    if (!(tab.windowId in session.windows)) {
+        session.windows[tab.windowId] = { tabs: {} };
+    }
+    session.windows[tab.windowId].tabs[tab.id] = newPage;
+    endLogEvent();
+}
+
+/**
  * Search through the session looking for a tab with the given tabId.
  *
  * @param Int tabId The id of a tab in question to search for
  * @return Int The windowId that contains the tabId. Null if does not exist
  */
 function findWindowId(tabId) {
-    for(windowId in session.windows) {
-        if(tabId in session.windows[windowId].tabs) {
+    for (var windowId in session.windows) {
+        if (tabId in session.windows[windowId].tabs) {
             return windowId;
         }
     }
@@ -268,7 +287,7 @@ function preparePageviewForSend(page) {
     }
 
     if (page.deviceGuid === null) {
-        if(localStorage.guid != null) {
+        if(localStorage.guid !== null) {
             guid = localStorage.guid;
             page.deviceGuid = guid;
         } else {
