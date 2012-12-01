@@ -50,7 +50,7 @@ def retrieveUserPageviews(userId=None):
     userId = userId.replace('_', '@')
 
     allDocuments = []
-    for row in db.view('pageView/by_userId'):
+    for row in db.view('pageView/by_userId', startkey=userId, endkey=userId):
         if row.key == userId:
             # Add each item to list
             allDocuments.append(row)
