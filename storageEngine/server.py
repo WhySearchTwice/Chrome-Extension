@@ -47,10 +47,13 @@ def savePageview():
 
 @app.route('/user/<userId>')
 def retrieveUserPageviews(userId=None):
+    userId = userId.replace('_', '@')
+
     allDocuments = []
     for row in db.view('pageView/by_userId'):
-        # Add each item to list
-        allDocuments.append(row)
+        if row.key == userId:
+            # Add each item to list
+            allDocuments.append(row)
 
     return json.dumps(allDocuments)
 
