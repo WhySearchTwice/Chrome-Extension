@@ -1,6 +1,6 @@
 {
-    "name": "Capstone Data Collector",
-    "version": "0.0.1",
+    "name": "Why Search Twice - Data Collector",
+    "version": "0.0.2",
     "manifest_version": 2,
     "description": "Collects data for personal analytics",
     "icons": {
@@ -10,7 +10,7 @@
         "128": "img/icon/128.png"
     },
     "browser_action": {
-        "default_title": "Capstone",
+        "default_title": "Why Search Twice",
         "default_icon": "img/icon/19.png",
         "default_popup": "html/popups/default.html"
     },
@@ -21,9 +21,6 @@
             "js/background.js"
         ]
     },
-    "chrome_url_overrides" : {
-        "history": "html/history.html"
-    },
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
@@ -31,7 +28,7 @@
             "all_frames": true
         }
     ],
-    "homepage_url": "http://emberdb.com/capstone",
+    "homepage_url": "http://whysearchtwice.com",
     "incognito": "spanning",
     "omnibox": {
         "keyword": "history"
