@@ -32,6 +32,26 @@ var guid = localStorage.guid || null;
 if (guid === null) { retrieveNewGuid(); }
 
 /**
+ * Listen for messages from scout.js
+ */
+chrome.extension.onMessage.addListener(
+    function(request, sender, sendResponse) {
+        console.log('Message from ' + (sender.tab ? 'scout: ' + sender.tab.url : ' extension'));
+        console.log(request);
+        switch (request.action) {
+
+            case 'openHistory':
+                console.log('Opening history...');
+                chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
+                break;
+
+            default:
+                break;
+
+        }
+    });
+
+/**
  * Persist session data to localStorage if background page is reloaded or closed.
  */
 window.onUnload = function() {
@@ -72,7 +92,7 @@ chrome.windows.onRemoved.addListener(function(windowId) {
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
         console.log('Tab loading: ' + changeInfo.url || tab.url);
-        addPage(tab);
+        addToSession(tab);
     }
 });
 
@@ -99,11 +119,11 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
 
 
 chrome.webNavigation.onCompleted.addListener(function(details) {
-    // console.log("Completed: " + details.url);
+    // console.log('Completed: ' + details.url);
 });
 
 chrome.webNavigation.onTabReplaced.addListener(function(details) {
-    // console.log("Tab Replaced: New - " + details.tabId + " Old - " + replacedTabId);
+    // console.log('Tab Replaced: New - ' + details.tabId + ' Old - ' + replacedTabId);
 });
 
 /**
@@ -113,13 +133,13 @@ chrome.webNavigation.onTabReplaced.addListener(function(details) {
  */
 chrome.tabs.onActivated.addListener(function(activeInfo) {
     var focusChange = {
-        type: "focusChange",
+        type: 'focusChange',
         tabId: activeInfo.tabId,
         windowId: activeInfo.windowId,
         time: (new Date()).getTime()
     };
 
-    addPage(activeInfo.tabId);
+    addToSession(activeInfo.tabId);
 
     // Send this page to the server
     sendFocus(focusChange);
@@ -197,12 +217,12 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
  *
  * @param Mixed tab String tabId or Tab tab
  */
-function addPage(tab) {
+function addToSession(tab) {
     console.log('Creating new page object...');
     if (typeof tab === 'String') {
         console.log('Passed tabId, getting tab object...');
         chrome.tab.get(tab, function(tab) {
-            addPage(tab);
+            addToSession(tab);
         });
         return;
     }
@@ -349,7 +369,7 @@ function post(url, data, callback) {
     if (data.userId === null || data.deviceGuid === null) {
         console.log('UserID or DeviceGuid missing. Aborting send');
         return;
-    } else if (data.pageUrl == "chrome://newtab/") {
+    } else if (data.pageUrl == 'chrome://newtab/') {
         console.log('Ignoring a newTab pageView');
         return;
     }

@@ -1,18 +1,13 @@
 {
-    "name": "Why Search Twice - Data Collector",
+    "name": "Why Search Twice?",
     "version": "0.0.2",
     "manifest_version": 2,
-    "description": "Collects data for personal analytics",
+    "description": "Nothing is ever lost, make your history work for you.",
     "icons": {
         "16": "img/icon/16.png",
         "19": "img/icon/19.png",
         "48": "img/icon/48.png",
         "128": "img/icon/128.png"
-    },
-    "browser_action": {
-        "default_title": "Why Search Twice",
-        "default_icon": "img/icon/19.png",
-        "default_popup": "html/popups/default.html"
     },
     "background": {
         "scripts": [
