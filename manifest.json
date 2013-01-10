@@ -11,8 +11,7 @@
     },
     "background": {
         "scripts": [
-            "js/chrome_ex_oauth_simple.js",
-            "js/chrome_ex_oauth.js",
+            "js/oauth.js",
             "js/background.js"
         ]
     },
