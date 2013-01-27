@@ -3,7 +3,7 @@
  *
  * @type String
  */
-var SERVER = 'http://ec2-174-129-49-253.compute-1.amazonaws.com';
+var SERVER = 'http://ec2.whysearchtwice.com:8182';
 
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
@@ -19,17 +19,29 @@ var session = localStorage.session || { windows: {} };
  *
  * @type String
  */
-var userId = localStorage.userId || null;
-if (userId === null) { retrieveUserId(); }
+var userId = localStorage.userId;
+if (!userId) { retrieveUserId(); }
 
 /**
- * guid uniquely identifies this device and will be stored to localStorage after
+ * deviceId uniquely identifies this device and will be stored to localStorage after
  * initial generation. Retrieve if missing.
  *
  * @type String
  */
-var guid = localStorage.guid || null;
-if (guid === null) { retrieveNewGuid(); }
+var deviceId = localStorage.deviceId;
+if (!deviceId) { registerDevice(); }
+
+// create session
+(function() {
+    console.log('Updating session...');
+    chrome.windows.getAll({populate: true}, function(windows) {
+        for (var i = 0, l = windows.length; i < l; i++) {
+            for (var j = 0, m = windows[i].tabs.length; j < m; j++) {
+                addToSession(windows[i].tabs[j]);
+            }
+        }
+    });
+})();
 
 /**
  * Listen for messages from scout.js
@@ -37,7 +49,7 @@ if (guid === null) { retrieveNewGuid(); }
 chrome.extension.onMessage.addListener(
     function(request, sender, sendResponse) {
         console.log('Message from ' + (sender.tab ? 'scout: ' + sender.tab.url : ' extension'));
-        console.log(request);
+        console.log('    ' + request);
         switch (request.action) {
 
             case 'openHistory':
@@ -52,7 +64,7 @@ chrome.extension.onMessage.addListener(
     });
 
 /**
- * Persist session data to localStorage if background page is reloaded or closed.
+ * Persist session data to localStorage if background page is unloaded.
  */
 window.onUnload = function() {
     console.log('Background page unloading. Saving to localStorage...');
@@ -60,26 +72,26 @@ window.onUnload = function() {
 };
 
 /**
- * Event Listener - Window Close
- * Submit each tab that is contained in this window. Delete window from session
+ * Event Listener - Window Closed
+ * Update each tab that is contained in this window. Delete window from session
  * after complete.
  */
 chrome.windows.onRemoved.addListener(function(windowId) {
     console.log('Window ' + windowId + ' closed.');
     // Check if window exists
-    if (windowId in session.windows) {
+    if (session.windows[windowId]) {
         // get all tabs in window
-        console.log('Sending tabs...');
+        console.log('Updating tabs...');
         for (var tabId in session.windows[windowId].tabs) {
             // Send this tab
-            sendPage(windowId, tabId);
+            updatePage(windowId, tabId);
         }
         // Remove the window from the storage
-        console.log('Removing window from session');
+        console.log('Removing window from session...');
         delete session.windows[windowId];
         endLogEvent();
     } else {
-        console.warn('Window not in session, no action taken');
+        console.warn('Window not in session, no action taken.');
         endLogEvent();
     }
 });
@@ -97,13 +109,13 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 });
 
 /**
- * Event Listener - URL Committed to Tab
+ * Event Listener - Page loaded
  * Called whenever a navigation takes place. Will attempt to add information
  * to the session about what is loading in a tab and how it was started
  */
 chrome.webNavigation.onCommitted.addListener(function(details) {
     windowId = findWindowId(details.tabId);
-    if (windowId === null) { return; }
+    if (windowId) { return; }
 
     // Verify that this commit was for the page that is actually being loaded,
     // not a background page
@@ -111,12 +123,11 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
         // Append information to this page object
         console.log('Updating pageView object with onCommitted information');
 
-        page = session.windows[windowId].tabs[details.tabId];
-        page.transitionType = details.transitionType;
-        page.transitionQualifiers = details.transitionQualifiers;
+        var page = session.windows[windowId].tabs[details.tabId];
+            page.transitionType = details.transitionType;
+            page.transitionQualifiers = details.transitionQualifiers;
     }
 });
-
 
 chrome.webNavigation.onCompleted.addListener(function(details) {
     // console.log('Completed: ' + details.url);
@@ -127,26 +138,44 @@ chrome.webNavigation.onTabReplaced.addListener(function(details) {
 });
 
 /**
- * Event Listener - Tab Gains Focus
+ * Event Listener - Tab Focused
  * Called whenever a tab gains focus. Send an even with the tabID and windowId, and other
  * standard fields to write a trail of what the user is looking at.
  */
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    var focusChange = {
-        type: 'focusChange',
-        tabId: activeInfo.tabId,
-        windowId: activeInfo.windowId,
-        time: (new Date()).getTime()
-    };
+    console.log('Tab focused, updating focus data...');
+    var focusStart = (new Date()).getTime();
+    // check if previous tab is in session
+    if (!session.windows[activeInfo.windowId] ||
+        !session.windows[activeInfo.windowId].focusedTab ||
+        !session.windows[activeInfo.windowId].tabs[session.windows[activeInfo.windowId].focusedTab]
+    ) {
+        console.warn('Previous tab not in session. No action taken');
+    } else {
+        // blur previous page
+        var previousTab = session.windows[activeInfo.windowId].tabs[session.windows[activeInfo.windowId].focusedTab];
+        if (!previousTab.focusHistory) {
+            previousTab.focusHistory = [];
+        }
+        previousTab.focusHistory.push(focusStart);
+    }
 
-    addToSession(activeInfo.tabId);
+    // focus current page
+    var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
+    if (!currentTab.focusHistory) {
+        currentTab.focusHistory = [];
+    }
+    currentTab.focusHistory.push(focusStart);
 
-    // Send this page to the server
-    sendFocus(focusChange);
+    session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
+
+    console.log('Updated focus data:');
+    console.log(currentTab);
+    endLogEvent();
 });
 
 /**
- * Event Listener - Tab Attached (to a new window)
+ * Event Listener - Tab moved to new Window
  * Listen for tabs being attached to new windows. Create a new group for the window
  * in the session if it does not exist and add this tab to it. Remove the tab from the
  * old group.
@@ -155,21 +184,19 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
     var newWindowId = attachInfo.newWindowId;
 
     // Create a new window if necessary
-    if (!(newWindowId in session.windows)) {
+    if (!session.windows[newWindowId]) {
         console.log('Creating a new window in session: window ' + newWindowId);
-        session.windows[newWindowId] = {
-            tabs: {}
-        };
+        session.windows[newWindowId] = { tabs: {} };
     }
 
     // Find the tab that is being moved
     for (var windowId in session.windows) {
-        if (tabId in session.windows[windowId].tabs) {
+        if (session.windows[windowId].tabs[tabId]) {
             console.log('Found the old tab location: window ' + windowId);
 
             // For some reason this method is called twice. Super weird
             if (windowId == newWindowId) {
-                console.log('source windowId == destination windowId. Aboring move');
+                console.log('source windowId == destination windowId. Aborting move');
                 endLogEvent();
                 return;
             }
@@ -179,6 +206,7 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
 
             console.log('Saving tab to new window location: window ' + newWindowId);
             session.windows[newWindowId].tabs[tabId] = page;
+            session.windows[newWindowId].focused = tabId;
             delete session.windows[windowId].tabs[tabId];
         }
     }
@@ -194,12 +222,12 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     if (removeInfo.isWindowClosing) { return; }
 
     // else
-    console.log('Tab ' + tabId + ' closed');
+    console.log('Tab ' + tabId + ' closed.');
     for (var windowId in session.windows) {
-        if (tabId in session.windows[windowId].tabs) {
+        if (session.windows[windowId].tabs[tabId]) {
             // Send the page
-            console.log('Sending tab before close...');
-            sendPage(windowId, tabId);
+            console.log('Updating tab before close...');
+            updatePage(windowId, tabId);
 
             // Delete the page from storage
             console.log('Deleting the page from storage');
@@ -215,7 +243,7 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 /**
  * Adds page to session
  *
- * @param Mixed tab String tabId or Tab tab
+ * @param {Mixed} tab String tabId or Tab tab
  */
 function addToSession(tab) {
     console.log('Creating new page object...');
@@ -232,86 +260,91 @@ function addToSession(tab) {
         type: 'pageView',
         tabId: tab.id,
         pageUrl: tab.url,
+        parentId: tab.openerTabId ? session.windows[tab.windowId].tabs[tab.openerTabId].id : undefined,
         windowId: tab.windowId,
         pageOpenTime: (new Date()).getTime()
     };
 
-    // Check if there is a tab with this ID already. If so, submit it
-    if (tab.windowId in session.windows &&
-        tab.id in session.windows[tab.windowId].tabs) {
+    // Check if there is a tab with this ID already. If so, update it
+    if (session.windows[tab.windowId] &&
+        session.windows[tab.windowId].tabs[tab.id]
+    ) {
+        newPage.predecessorId = session.windows[tab.windowId].tabs[tab.tabId].id;
         console.log('Calling send page...');
-        sendPage(tab.windowId, tab.id);
+        updatePage(tab.windowId, tab.id);
     } else {
         endLogEvent();
     }
 
     // Store this new page
-    if (!(tab.windowId in session.windows)) {
-        session.windows[tab.windowId] = { tabs: {} };
+    if (!session.windows[tab.windowId]) {
+        session.windows[tab.windowId] = {
+            tabs: {},
+            focusedTab: tab.id
+        };
     }
     session.windows[tab.windowId].tabs[tab.id] = newPage;
+    console.log('Created page object:');
+    console.log(newPage);
     endLogEvent();
+    sendPage(tab.windowId, tab.id);
 }
 
 /**
  * Search through the session looking for a tab with the given tabId.
  *
- * @param Int tabId The id of a tab in question to search for
- * @return Int The windowId that contains the tabId. Null if does not exist
+ * @param {Int} tabId The id of a tab in question to search for
+ * @return {Int} The windowId that contains the tabId. undefined if does not exist
  */
 function findWindowId(tabId) {
     for (var windowId in session.windows) {
-        if (tabId in session.windows[windowId].tabs) {
+        if (session.windows[windowId].tabs[tabId]) {
             return windowId;
         }
     }
-    return null;
+    return undefined;
 }
 
 /**
- * Every device must have a unique GUID. Retrieve one from the server, save
- * to the local variable and localStorage.
+ * Encodes an object into query parameters
+ *
+ * @param {Object} object Object to be encoded
+ * @return {String} Encoded object
  */
-function retrieveNewGuid() {
-    console.log('Requesting new guid...');
-    get(SERVER + '/guid', function(request) {
-        // Store the GUID in localstorage & update local copy
-        guid = localStorage.guid = request.responseText;
-        console.log('Retrieved guid: ' + guid);
-    });
+function buildQueryString(object) {
+    var encoded = [];
+    for (var key in object) {
+        encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(object[key]));
+    }
+    return '?' + encoded.join('&');
 }
 
 /**
- * Add required fields to the pageView object such as userId and deviceGuid
+ * Add required fields to the pageView object such as userId and deviceId
  * and pageCloseTime.
+ *
+ * @param {Object} page The page to be validated
  */
-function preparePageviewForSend(page) {
-    console.log('Adding close time to page object in session...');
-    page.pageCloseTime = (new Date()).getTime();
-
+function validatePage(page) {
     console.log('Adding userId to page object...');
     page.userId = userId;
-    page.deviceGuid = guid;
+    page.deviceId = deviceId;
 
-    if (page.userId === null) {
-        // Attempt to reload the userId
-        userId = localStorage.userId;
-
-        // If still null, reload extension to fetch userId
+    if (!page.userId) {
+        // If there is no user ID, reload extension to fetch it
         // Make exception for userId oauth pages
-        if (userId === null && /^https:\/\/accounts.google.com\/OAuthAuthorizeToken*/.test(page.url)) {
+        if (!userId && /^https:\/\/accounts.google.com\/OAuthAuthorizeToken*/.test(page.url)) {
             window.location.reload();
         } else {
             page.userId = userId;
         }
     }
 
-    if (page.deviceGuid === null) {
-        if(localStorage.guid !== null) {
-            guid = localStorage.guid;
-            page.deviceGuid = guid;
+    if (!page.deviceId) {
+        if (!deviceId) {
+            window.location.reload();
         } else {
-            console.log('deviceGuid is null! Do something!');
+            page.deviceId = deviceId;
         }
     }
 
@@ -322,36 +355,59 @@ function preparePageviewForSend(page) {
  * Send a pageView object. Creates a closure that encapsulates the scope of the page
  * object while passing it between various functions before sending it.
  *
- * @param Int windowId Chrome's window id
- * @param Int tabId Chrome's tab id
+ * @param {Int} windowId Chrome's window id
+ * @param {Int} tabId Chrome's tab id
  */
 function sendPage(windowId, tabId) {
     // Retrieve the page
     console.log('Retrieving the page to submit...');
-    page = session.windows[windowId].tabs[tabId];
+    var page = session.windows[windowId].tabs[tabId];
 
     // Prepare the page
-    console.log('Preparing page...');
-    page = preparePageviewForSend(page);
+    page = validatePage(page);
+
 
     // Send the page (use closure to keep current state of page in local scope)
     console.log('Sending page...');
     (function(page) {
-        return function() { post(SERVER + '/pageview', page); };
+        return function() {
+            post(SERVER + '/graphs/WhySearchTwice/parsley/vertex/createVertex' + buildQueryString({
+                predecessor: page.predecessorId || -1,
+                parent: page.parentId || -1
+            }), page, function(response) {
+                session.windows[page.windowId].tabs[page.tabId].id = JSON.parse(response.responseText).id;
+            });
+        };
     })(page)();
 }
 
-function sendFocus(focusChange) {
-    // Prepare the focusChange
-    console.log('Perparing a focus change event...');
-    focusChange = preparePageviewForSend(focusChange);
+/**
+ * Send update to an exisitng pageView object.
+ * Creates a closure that encapsulates the scope of the page object
+ * while passing it between various functions before sending it.
+ *
+ * @param {Int} windowId Chrome's window id
+ * @param {Int} tabId Chrome's tab id
+ */
+function updatePage(windowId, tabId) {
+    // Retrieve the page
+    console.log('Retrieving the page to update...');
+    var page = session.windows[windowId].tabs[tabId];
+    var pageUpdate = {
+        pageCloseTime: (new Date()).getTime(),
+        focusHistory: page.focusHistory
+    };
 
-    // We don't actually want the pageCloseTime
-    delete(focusChange.pageCloseTime);
+    // Prepare the page
+    pageUpdate = validatePage(pageUpdate);
 
-    // Send the focusChange
-    console.log('Sending focusChange...');
-    post(SERVER+ '/pageview', focusChange);
+    // Send the page (use closure to keep current state of page in local scope)
+    console.log('Sending page...');
+    (function(page) {
+        return function() {
+            // UPDATE VERTEX
+        };
+    })(page)();
 }
 
 /**
@@ -360,45 +416,38 @@ function sendFocus(focusChange) {
  *
  * @author ansel
  *
- * @param String url remote target of POST
- * @param Mixed data String or Object to be POSTed
- * @param Function callback a function to be called on success. Will be passed the request object
+ * @param {String} url remote target of POST
+ * @param {Mixed} data String or Object to be POSTed
+ * @param {Function} callback a function to be called on success. Will be passed the request object
  */
 function post(url, data, callback) {
-    // Verify that the page is valid
-    if (data.userId === null || data.deviceGuid === null) {
-        console.log('UserID or DeviceGuid missing. Aborting send');
-        return;
-    } else if (data.pageUrl == 'chrome://newtab/') {
-        console.log('Ignoring a newTab pageView');
-        return;
-    }
     ajax('POST', url, data, callback);
 }
 
 /**
  * GET data from the server. Wrapper for AJAX
  *
- * @param String url remote target of POST
- * @param Function callback a function to be called on success. Will be passed the request object
+ * @param {String} url remote target of POST
+ * @param {Function} callback a function to be called on success. Will be passed the request object
  */
 function get(url, callback) {
-    ajax('GET', url, null, callback);
+    ajax('GET', url, undefined, callback);
 }
 
 /**
  * AJAX helper function. Do not use this function directly
  *
- * @param String url remote target of POST
- * @param Mixed data String or Object to be POSTed
- * @param Function callback a function to be called on success. Will be passed the request object
+ * @param {String} url remote target of POST
+ * @param {Mixed} data String or Object to be POSTed
+ * @param {Function} callback a function to be called on success. Will be passed the request object
  */
 function ajax(method, url, data, callback) {
     console.log('Sending: ');
-    console.log(data);
+    console.log(data || url);
     var request = new XMLHttpRequest();
         request.open(method, url, true);
-        request.setRequestHeader('Content-Type', 'text/plain');
+        request.setRequestHeader('Content-Type', 'application/json');
+        request.setRequestHeader('accept', 'application/json');
         request.onreadystatechange = function () {
             if (request.readyState == 4 && request.status == 200) {
                 console.log('Response received:');
@@ -410,6 +459,22 @@ function ajax(method, url, data, callback) {
         request.send(JSON.stringify(data));
 }
 
+/**
+ * register new deviceId
+ */
+function registerDevice() {
+    console.log('Fetching existing devices from Chrome Sync...');
+    chrome.storage.sync.get('devices', function(response) {
+        if (!response.devices) {
+            response.devices = [];
+        }
+        deviceId = localStorage.deviceId = userId + response.devices.length;
+        response.devices.push(deviceId);
+        chrome.storage.sync.set({'devices': response.devices}, function() {
+            console.log('Device registered.');
+        });
+    });
+}
 
 /**
  * Retrieve the email address of the user and saves to the userId and in localStorage.
@@ -419,8 +484,9 @@ function retrieveUserId() {
     chrome.storage.sync.get('userId', function(response) {
         if (typeof response.userId !== 'undefined') {
             userId = localStorage.userId = response.userId;
+            console.log('Fetched userId.');
         } else {
-            console.log('Trying to fetch userId via oauth...');
+            console.log('Failed. Trying to fetch userId via oauth...');
             var oauth = ChromeExOAuth.initBackgroundPage({
                 'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
                 'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
@@ -450,7 +516,6 @@ function retrieveUserId() {
         }
     });
 }
-
 
 /**
  * Prints spacer and style divider to log

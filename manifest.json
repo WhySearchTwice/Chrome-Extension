@@ -11,6 +11,7 @@
     },
     "background": {
         "scripts": [
+            "js/oauth-simple.js",
             "js/oauth.js",
             "js/background.js"
         ]
