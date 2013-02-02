@@ -11,8 +11,8 @@
     },
     "background": {
         "scripts": [
-            "js/oauth-simple.js",
-            "js/oauth.js",
+            "js/libs/oauth-simple.js",
+            "js/libs/oauth.js",
             "js/background.js"
         ]
     },
