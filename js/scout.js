@@ -4,7 +4,7 @@
 })();
 
 /**
- * Opens history replacement page manually in a new tab with [ Alt ] + [ H ]
+ * Opens history replacement page manually in a new tab with [ Shift ] + [ H ]
  */
 document.addEventListener('keypress', function(event) {
     console.log(event);

@@ -3,7 +3,7 @@
  *
  * @type String
  */
-var SERVER = 'http://ec2.whysearchtwice.com:8182';
+var SERVER = 'http://ec2-54-234-143-192.compute-1.amazonaws.com:8182';
 
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
@@ -20,7 +20,6 @@ var session = localStorage.session || { windows: {} };
  * @type String
  */
 var userId = localStorage.userId;
-if (!userId) { retrieveUserId(); }
 
 /**
  * deviceId uniquely identifies this device and will be stored to localStorage after
@@ -29,7 +28,6 @@ if (!userId) { retrieveUserId(); }
  * @type String
  */
 var deviceId = localStorage.deviceId;
-if (!deviceId) { registerDevice(); }
 
 // create session
 (function() {
@@ -114,12 +112,12 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
  * to the session about what is loading in a tab and how it was started
  */
 chrome.webNavigation.onCommitted.addListener(function(details) {
-    windowId = findWindowId(details.tabId);
+    var windowId = findWindowId(details.tabId);
     if (windowId) { return; }
 
     // Verify that this commit was for the page that is actually being loaded,
     // not a background page
-    if (details.url == session.windows[windowId].tabs[details.tabId].pageUrl) {
+    if (details.url === session.windows[windowId].tabs[details.tabId].pageUrl) {
         // Append information to this page object
         console.log('Updating pageView object with onCommitted information');
 
@@ -139,7 +137,7 @@ chrome.webNavigation.onTabReplaced.addListener(function(details) {
 
 /**
  * Event Listener - Tab Focused
- * Called whenever a tab gains focus. Send an even with the tabID and windowId, and other
+ * Called whenever a tab gains focus. Send an event with the tabID and windowId, and other
  * standard fields to write a trail of what the user is looking at.
  */
 chrome.tabs.onActivated.addListener(function(activeInfo) {
@@ -195,13 +193,13 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
             console.log('Found the old tab location: window ' + windowId);
 
             // For some reason this method is called twice. Super weird
-            if (windowId == newWindowId) {
+            if (windowId === newWindowId) {
                 console.log('source windowId == destination windowId. Aborting move');
                 endLogEvent();
                 return;
             }
 
-            page = session.windows[windowId].tabs[tabId];
+            var page = session.windows[windowId].tabs[tabId];
             page.windowId = newWindowId;
 
             console.log('Saving tab to new window location: window ' + newWindowId);
@@ -267,8 +265,11 @@ function addToSession(tab) {
 
     // Check if there is a tab with this ID already. If so, update it
     if (session.windows[tab.windowId] &&
-        session.windows[tab.windowId].tabs[tab.id]
+        session.windows[tab.windowId].tabs[tab.tabId]
     ) {
+        console.log(tab.tabId);
+        console.log(session.windows[tab.windowId].tabs);
+        console.log(session.windows[tab.windowId].tabs[tab.tabId]);
         newPage.predecessorId = session.windows[tab.windowId].tabs[tab.tabId].id;
         console.log('Calling send page...');
         updatePage(tab.windowId, tab.id);
@@ -320,32 +321,17 @@ function buildQueryString(object) {
 }
 
 /**
- * Add required fields to the pageView object such as userId and deviceId
- * and pageCloseTime.
+ * Complete missing fields in page object
  *
  * @param {Object} page The page to be validated
  */
 function validatePage(page) {
     console.log('Adding userId to page object...');
-    page.userId = userId;
-    page.deviceId = deviceId;
-
-    if (!page.userId) {
-        // If there is no user ID, reload extension to fetch it
-        // Make exception for userId oauth pages
-        if (!userId && /^https:\/\/accounts.google.com\/OAuthAuthorizeToken*/.test(page.url)) {
-            window.location.reload();
-        } else {
-            page.userId = userId;
-        }
+    if (userId) {
+        page.userId = userId;
     }
-
-    if (!page.deviceId) {
-        if (!deviceId) {
-            window.location.reload();
-        } else {
-            page.deviceId = deviceId;
-        }
+    if (deviceId) {
+        page.deviceId = deviceId;
     }
 
     return page;
@@ -371,11 +357,15 @@ function sendPage(windowId, tabId) {
     console.log('Sending page...');
     (function(page) {
         return function() {
-            post(SERVER + '/graphs/WhySearchTwice/parsley/vertex/createVertex' + buildQueryString({
-                predecessor: page.predecessorId || -1,
-                parent: page.parentId || -1
-            }), page, function(response) {
-                session.windows[page.windowId].tabs[page.tabId].id = JSON.parse(response.responseText).id;
+            post(SERVER + '/graphs/WhySearchTwice/parsley/pageView', page, function(response) {
+                response = JSON.parse(response.response);
+                if (response.userGuid) {
+                    userId = response.userGuid;
+                }
+                if (response.deviceGuid) {
+                    deviceId = response.deviceGuid;
+                }
+                session.windows[page.windowId].tabs[page.tabId].id = response.id;
             });
         };
     })(page)();
@@ -405,7 +395,7 @@ function updatePage(windowId, tabId) {
     console.log('Sending page...');
     (function(page) {
         return function() {
-            // UPDATE VERTEX
+            post(SERVER + '/graphs/WhySearchTwice/vertices/' + page.id + '/parsley/pageView', page);
         };
     })(page)();
 }
@@ -449,7 +439,7 @@ function ajax(method, url, data, callback) {
         request.setRequestHeader('Content-Type', 'application/json');
         request.setRequestHeader('accept', 'application/json');
         request.onreadystatechange = function () {
-            if (request.readyState == 4 && request.status == 200) {
+            if (request.readyState === 4 && request.status === 200) {
                 console.log('Response received:');
                 console.log(request);
                 endLogEvent();
@@ -515,6 +505,13 @@ function retrieveUserId() {
             });
         }
     });
+}
+
+/**
+ * Deletes localStorage and Chrome sync data
+ */
+function reset() {
+    localStorage.clear();
 }
 
 /**
