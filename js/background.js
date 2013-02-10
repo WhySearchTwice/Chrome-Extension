@@ -512,6 +512,7 @@ function retrieveUserId() {
  */
 function reset() {
     localStorage.clear();
+    chrome.storage.sync.clear();
 }
 
 /**
