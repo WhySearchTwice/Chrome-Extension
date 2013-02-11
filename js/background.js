@@ -1,5 +1,6 @@
 /**
  * Base URL of database API where all information is submitted.
+ * @author ansel
  *
  * @type String
  */
@@ -8,6 +9,7 @@ var SERVER = 'http://ec2-54-234-143-192.compute-1.amazonaws.com:8182';
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
  * localStorage when chrome is closed. Load from localStorage or create new.
+ * @author ansel
  *
  * @type Object
  */
@@ -16,6 +18,7 @@ var session = localStorage.session || { windows: {} };
 /**
  * userId must be submitted with every request. Consists of email address of user
  * and is stored to localStorage after initial retrieval. Retrieve if missing.
+ * @author ansel
  *
  * @type String
  */
@@ -24,6 +27,7 @@ var userId = localStorage.userId;
 /**
  * deviceId uniquely identifies this device and will be stored to localStorage after
  * initial generation. Retrieve if missing.
+ * @author ansel
  *
  * @type String
  */
@@ -42,27 +46,42 @@ var deviceId = localStorage.deviceId;
 })();
 
 /**
- * Listen for messages from scout.js
+ * Listen for connections
+ * @author ansel
  */
-chrome.extension.onMessage.addListener(
-    function(request, sender, sendResponse) {
-        console.log('Message from ' + (sender.tab ? 'scout: ' + sender.tab.url : ' extension'));
-        console.log('    ' + request);
-        switch (request.action) {
+chrome.extension.onConnect.addListener(function(port) {
+    if (port.name === 'history') {
+        // long-lived connection request from history page
+        port.onMessage.addListener(function(request) {
+            console.log('Message from history:');
+            console.log('    ' + request.toString());
+            switch (request.action) {
 
-            case 'openHistory':
-                console.log('Opening history...');
-                chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
-                break;
+                default:
+                    break;
+            }
+        });
+    } else {
+        // connection request from scout or other indev script
+        port.onMessage.addListener(function(request) {
+            console.log('Message from ' + port.name);
+            switch (request.action) {
 
-            default:
-                break;
+                case 'openHistory':
+                    console.log('Opening history...');
+                    chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
+                    break;
 
-        }
-    });
+                default:
+                    break;
+            }
+        });
+    }
+});
 
 /**
  * Persist session data to localStorage if background page is unloaded.
+ * @author ansel
  */
 window.onUnload = function() {
     console.log('Background page unloading. Saving to localStorage...');
@@ -73,6 +92,7 @@ window.onUnload = function() {
  * Event Listener - Window Closed
  * Update each tab that is contained in this window. Delete window from session
  * after complete.
+ * @author ansel
  */
 chrome.windows.onRemoved.addListener(function(windowId) {
     console.log('Window ' + windowId + ' closed.');

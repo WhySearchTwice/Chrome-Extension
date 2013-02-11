@@ -13,6 +13,7 @@ document.addEventListener('keypress', function(event) {
         event.target.hasAttribute('contenteditable')
     ;
     if (event.keyCode === 72 && !isInput) {
-        chrome.extension.sendMessage({ action: 'openHistory' });
+        var port = chrome.extension.connect({ name: 'scout' });
+            port.postMessage({ action: 'openHistory' });
     }
 });
