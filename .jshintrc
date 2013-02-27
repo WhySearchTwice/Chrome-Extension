@@ -65,7 +65,8 @@
         "angular",
         "console",
         "chrome",
-        "ChromeExOAuth"
+        "ChromeExOAuth",
+        "Kinetic"
     ],
     "indent"        : 4         // Specify indentation spacing
 }
