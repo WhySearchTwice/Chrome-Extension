@@ -4,7 +4,7 @@
  *
  * @type String
  */
-var SERVER = 'http://ec2-54-234-143-192.compute-1.amazonaws.com:8182';
+var SERVER = 'http://prod.whysearchtwice.com:8182';
 
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
@@ -57,8 +57,8 @@ chrome.extension.onConnect.addListener(function(port) {
             console.log('    ' + request.toString());
             switch (request.action) {
 
-                default:
-                    break;
+            default:
+                break;
             }
         });
     } else {
@@ -67,13 +67,13 @@ chrome.extension.onConnect.addListener(function(port) {
             console.log('Message from ' + port.name);
             switch (request.action) {
 
-                case 'openHistory':
-                    console.log('Opening history...');
-                    chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
-                    break;
+            case 'openHistory':
+                console.log('Opening history...');
+                chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
+                break;
 
-                default:
-                    break;
+            default:
+                break;
             }
         });
     }
@@ -142,8 +142,8 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
         console.log('Updating pageView object with onCommitted information');
 
         var page = session.windows[windowId].tabs[details.tabId];
-            page.transitionType = details.transitionType;
-            page.transitionQualifiers = details.transitionQualifiers;
+        page.transitionType = details.transitionType;
+        page.transitionQualifiers = details.transitionQualifiers;
     }
 });
 
@@ -455,18 +455,18 @@ function ajax(method, url, data, callback) {
     console.log('Sending: ');
     console.log(data || url);
     var request = new XMLHttpRequest();
-        request.open(method, url, true);
-        request.setRequestHeader('Content-Type', 'application/json');
-        request.setRequestHeader('accept', 'application/json');
-        request.onreadystatechange = function () {
-            if (request.readyState === 4 && request.status === 200) {
-                console.log('Response received:');
-                console.log(request);
-                endLogEvent();
-                if (typeof callback === 'function') { callback(request); }
-            }
-        };
-        request.send(JSON.stringify(data));
+    request.open(method, url, true);
+    request.setRequestHeader('Content-Type', 'application/json');
+    request.setRequestHeader('accept', 'application/json');
+    request.onreadystatechange = function () {
+        if (request.readyState === 4 && request.status === 200) {
+            console.log('Response received:');
+            console.log(request);
+            endLogEvent();
+            if (typeof callback === 'function') { callback(request); }
+        }
+    };
+    request.send(JSON.stringify(data));
 }
 
 /**
