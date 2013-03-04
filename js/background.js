@@ -33,6 +33,16 @@ var userId = localStorage.userId;
  */
 var deviceId = localStorage.deviceId;
 
+/**
+ * requestQueue Keeps track of requestQueue and whether requests should be queued
+ *
+ * @type Object
+ */
+var requestQueue = {
+    isActive: false,
+    queue: []
+};
+
 // create session
 (function() {
     console.log('Updating session...');
@@ -346,12 +356,16 @@ function buildQueryString(object) {
  * @param {Object} page The page to be validated
  */
 function validatePage(page) {
+    if (page.type !== 'pageView') { return page; }
+
     console.log('Adding userId to page object...');
-    if (userId) {
-        page.userId = userId;
-    }
-    if (deviceId) {
-        page.deviceId = deviceId;
+    page.userId = userId;
+    console.log('Adding deviceId to page object...');
+    page.deviceId = deviceId;
+
+    if ((!userId || !deviceId) && !requestQueue.isActive) {
+        console.log('userId or deviceId missing. Activating queuing');
+        requestQueue.isActive = true;
     }
 
     return page;
@@ -372,18 +386,22 @@ function sendPage(windowId, tabId) {
     // Prepare the page
     page = validatePage(page);
 
-
     // Send the page (use closure to keep current state of page in local scope)
     console.log('Sending page...');
     (function(page) {
+        if (page.userId && page.deviceId) {
+            delete page.userId;
+        }
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/parsley/pageView', page, function(response) {
                 response = JSON.parse(response.response);
-                if (response.userGuid) {
-                    userId = response.userGuid;
-                }
-                if (response.deviceGuid) {
-                    deviceId = response.deviceGuid;
+                if (response.userGuid || response.deviceGuid) {
+                    userId = localStorage.userId = userId || response.userGuid;
+                    deviceId = localStorage.deviceId = deviceId || response.deviceGuid;
+                    // flush requests
+                    requestQueue.isActive = false;
+                    // remove fencepost
+                    requestQueue.queue.splice(0, 1);
                 }
                 session.windows[page.windowId].tabs[page.tabId].id = response.id;
             });
@@ -452,6 +470,36 @@ function get(url, callback) {
  * @param {Function} callback a function to be called on success. Will be passed the request object
  */
 function ajax(method, url, data, callback) {
+    if (requestQueue.isActive) {
+        console.log('Queuing request:');
+        var request = {
+            method: method,
+            url: url,
+            data: data,
+            callback: callback
+        };
+        console.log(request);
+        requestQueue.queue.push(request);
+        console.warn(requestQueue);
+        endLogEvent();
+        if (requestQueue.queue.length > 1) {
+            return;
+        }
+    } else {
+        if (requestQueue.queue.length > 0) {
+            while (requestQueue.queue.length > 0) {
+                console.log('Dequeuing: ');
+                var request = requestQueue.queue[0];
+                // revalidate data
+                request.data = validatePage(request.data);
+                console.log(request);
+                ajax(request.method, request.url, request.data, request.callback);
+                requestQueue.queue.splice(0, 1);
+                console.warn(requestQueue);
+                endLogEvent();
+            }
+        }
+    }
     console.log('Sending: ');
     console.log(data || url);
     var request = new XMLHttpRequest();
@@ -539,5 +587,6 @@ function reset() {
  * Prints spacer and style divider to log
  */
 function endLogEvent() {
-    console.log('%c\n============================================================\n', 'background:#999;color:#fff;');
+    console.log('%c\n================================================================================\n', 'background:#999;color:#fff;');
 }
+
