@@ -40,6 +40,7 @@ var deviceId = localStorage.deviceId;
  */
 var requestQueue = {
     isActive: false,
+    isDequeuing: false,
     queue: []
 };
 
@@ -480,14 +481,14 @@ function ajax(method, url, data, callback) {
         };
         console.log(request);
         requestQueue.queue.push(request);
-        console.warn(requestQueue);
         endLogEvent();
         if (requestQueue.queue.length > 1) {
             return;
         }
     } else {
-        if (requestQueue.queue.length > 0) {
+        if (requestQueue.queue.length > 0 && !requestQueue.isDequeuing) {
             while (requestQueue.queue.length > 0) {
+                requestQueue.isDequeuing = true;
                 console.log('Dequeuing: ');
                 var request = requestQueue.queue[0];
                 // revalidate data
@@ -495,9 +496,9 @@ function ajax(method, url, data, callback) {
                 console.log(request);
                 ajax(request.method, request.url, request.data, request.callback);
                 requestQueue.queue.splice(0, 1);
-                console.warn(requestQueue);
                 endLogEvent();
             }
+            requestQueue.isDequeuing = false;
         }
     }
     console.log('Sending: ');
