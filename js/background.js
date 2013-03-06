@@ -360,9 +360,9 @@ function validatePage(page) {
     if (page.type !== 'pageView') { return page; }
 
     console.log('Adding userId to page object...');
-    page.userId = userId;
+    page.userGuid = userId;
     console.log('Adding deviceId to page object...');
-    page.deviceId = deviceId;
+    page.deviceGuid = deviceId;
 
     if ((!userId || !deviceId) && !requestQueue.isActive) {
         console.log('userId or deviceId missing. Activating queuing');
