@@ -296,19 +296,21 @@ function addToSession(tab) {
         type: 'pageView',
         tabId: tab.id,
         pageUrl: tab.url,
-        parentId: tab.openerTabId ? session.windows[tab.windowId].tabs[tab.openerTabId].id : undefined,
         windowId: tab.windowId,
         pageOpenTime: (new Date()).getTime()
     };
 
+    if (tab.openerTabId) {
+        newPage.parentId = session.windows[tab.windowId].tabs[tab.openerTabId].id;
+    }
+
     // Check if there is a tab with this ID already. If so, update it
     if (session.windows[tab.windowId] &&
-        session.windows[tab.windowId].tabs[tab.tabId]
+        session.windows[tab.windowId].tabs[tab.id]
     ) {
-        console.log(tab.tabId);
-        console.log(session.windows[tab.windowId].tabs);
-        console.log(session.windows[tab.windowId].tabs[tab.tabId]);
-        newPage.predecessorId = session.windows[tab.windowId].tabs[tab.tabId].id;
+        if (session.windows[tab.windowId].tabs[tab.id].id) {
+            newPage.predecessorId = session.windows[tab.windowId].tabs[tab.id].id;
+        }
         console.log('Calling send page...');
         updatePage(tab.windowId, tab.id);
     } else {
