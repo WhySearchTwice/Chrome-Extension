@@ -4,7 +4,7 @@
  *
  * @type String
  */
-var SERVER = 'http://prod.whysearchtwice.com:8182';
+var SERVER = 'http://' + (chrome.i18n.getMessage('@@extension_id') === 'heflehdnackihajkcgimpkmffacccegh' ? 'prod' : 'dev') + '.whysearchtwice.com:8182';
 
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
