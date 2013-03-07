@@ -512,7 +512,7 @@ function ajax(method, url, data, callback) {
                 // revalidate data
                 request.data = validatePage(request.data);
                 console.log(request);
-                if (!request.data.id && request.url.indexOf('/graphs/WhySearchTwice/vertices/') > -1) {
+                if (request.pageUrl.indexOf('/graphs/WhySearchTwice/vertices/') > -1 && !request.data.id) {
                     console.log('Dirty data, skipping...');
                     requestQueue.queue.splice(0, 1);
                     endLogEvent();
