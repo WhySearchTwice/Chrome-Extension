@@ -39,13 +39,21 @@ var deviceId = localStorage.deviceId;
  * @type Object
  */
 var requestQueue = {
-    isActive: false,
+    isActive: true,
     isDequeuing: false,
-    queue: []
+    canQueryRemote: 0,
+    queue: [],
+    flush: function() {
+        ajax('FLUSH');
+    },
+    ping: function() {
+        ajax('PING');
+    }
 };
 
 // create session
 (function() {
+    validateEnvironment();
     console.log('Updating session...');
     chrome.windows.getAll({populate: true}, function(windows) {
         for (var i = 0, l = windows.length; i < l; i++) {
@@ -390,19 +398,21 @@ function sendPage(windowId, tabId) {
     // Send the page (use closure to keep current state of page in local scope)
     console.log('Sending page...');
     (function(page) {
-        if (page.userId && page.deviceId) {
-            delete page.userId;
-        }
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/parsley/pageView', page, function(response) {
                 response = JSON.parse(response.response);
                 if (response.userGuid || response.deviceGuid) {
-                    userId = localStorage.userId = userId || response.userGuid;
-                    deviceId = localStorage.deviceId = deviceId || response.deviceGuid;
-                    // flush requests
+                    if (response.userGuid) {
+                        userId = localStorage.userId = response.userGuid;
+                        chrome.storage.sync.set({'userId': response.userGuid});
+                    }
+                    if (response.deviceGuid) {
+                        deviceId = localStorage.deviceId = response.deviceGuid;
+                    }
+                    // flush requests & remove fencepost
                     requestQueue.isActive = false;
-                    // remove fencepost
                     requestQueue.queue.splice(0, 1);
+                    requestQueue.flush();
                 }
                 session.windows[page.windowId].tabs[page.tabId].id = response.id;
             });
@@ -472,18 +482,26 @@ function get(url, callback) {
  */
 function ajax(method, url, data, callback) {
     if (requestQueue.isActive) {
-        console.log('Queuing request:');
-        var request = {
-            method: method,
-            url: url,
-            data: data,
-            callback: callback
-        };
-        console.log(request);
-        requestQueue.queue.push(request);
-        endLogEvent();
-        if (requestQueue.queue.length > 1) {
-            return;
+        if (method === 'PING') {
+            if (requestQueue.queue.length === 0) { return; }
+            method = requestQueue.queue[0].method;
+            url = requestQueue.queue[0].url;
+            data = requestQueue.queue[0].data;
+            callback = requestQueue.queue[0].callback;
+        } else {
+            console.log('Queuing request:');
+            var request = {
+                method: method,
+                url: url,
+                data: data,
+                callback: callback
+            };
+            console.log(request);
+            requestQueue.queue.push(request);
+            endLogEvent();
+            if (requestQueue.queue.length > 1) {
+                return;
+            }
         }
     } else {
         if (requestQueue.queue.length > 0 && !requestQueue.isDequeuing) {
@@ -494,6 +512,12 @@ function ajax(method, url, data, callback) {
                 // revalidate data
                 request.data = validatePage(request.data);
                 console.log(request);
+                if (!request.data.id && request.url.indexOf('/graphs/WhySearchTwice/vertices/') > -1) {
+                    console.log('Dirty data, skipping...');
+                    requestQueue.queue.splice(0, 1);
+                    endLogEvent();
+                    continue;
+                }
                 ajax(request.method, request.url, request.data, request.callback);
                 requestQueue.queue.splice(0, 1);
                 endLogEvent();
@@ -501,6 +525,7 @@ function ajax(method, url, data, callback) {
             requestQueue.isDequeuing = false;
         }
     }
+    if (method === 'FLUSH') { return; }
     console.log('Sending: ');
     console.log(data || url);
     var request = new XMLHttpRequest();
@@ -536,42 +561,16 @@ function registerDevice() {
 }
 
 /**
- * Retrieve the email address of the user and saves to the userId and in localStorage.
+ * Check Chrome Sync for conflicting environmental variables
  */
-function retrieveUserId() {
-    console.log('Trying to fetch userId from Chrome Sync...');
+function validateEnvironment() {
+    console.log('Validating local IDs with Chrome Sync... ');
     chrome.storage.sync.get('userId', function(response) {
-        if (typeof response.userId !== 'undefined') {
+        if (!response.userId) {
+            requestQueue.ping();
+        } else if (response.userId !== userId) {
             userId = localStorage.userId = response.userId;
-            console.log('Fetched userId.');
-        } else {
-            console.log('Failed. Trying to fetch userId via oauth...');
-            var oauth = ChromeExOAuth.initBackgroundPage({
-                'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
-                'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
-                'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
-                'consumer_key'   : 'anonymous', // TODO: Register app with Google
-                'consumer_secret': 'anonymous', // TODO: Register app with Google
-                'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
-                'app_name'       : 'Capstone'
-            });
-
-            console.log('Authorizing with Google...');
-            oauth.authorize(function() {
-                console.log('Authorized. Fetching email...');
-                var url = 'https://www.googleapis.com/userinfo/email';
-                var request = {
-                    'method': 'GET',
-                    'parameters': {'alt': 'json'}
-                };
-                oauth.sendSignedRequest(url, function(response) {
-                    userId = localStorage.userId = JSON.parse(response).data.email;
-                    console.log('Email saved. Syncing email...');
-                    chrome.storage.sync.set({'userId': userId}, function() {
-                        console.log('Email synced.');
-                    });
-                }, request);
-            });
+            requestQueue.isActive = false;
         }
     });
 }
