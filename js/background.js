@@ -41,7 +41,6 @@ var deviceId = localStorage.deviceId;
 var requestQueue = {
     isActive: true,
     isDequeuing: false,
-    canQueryRemote: 0,
     queue: [],
     flush: function() {
         ajax('FLUSH');
@@ -568,10 +567,11 @@ function validateEnvironment() {
     chrome.storage.sync.get('userId', function(response) {
         if (!response.userId) {
             requestQueue.ping();
+            return;
         } else if (response.userId !== userId) {
             userId = localStorage.userId = response.userId;
-            requestQueue.isActive = false;
         }
+        requestQueue.isActive = false;
     });
 }
 
