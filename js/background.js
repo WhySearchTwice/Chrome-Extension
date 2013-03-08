@@ -445,6 +445,7 @@ function updatePage(windowId, tabId) {
     console.log('Retrieving the page to update...');
     var page = session.windows[windowId].tabs[tabId];
     var pageUpdate = {
+        id: page.id,
         pageCloseTime: (new Date()).getTime(),
         focusHistory: page.focusHistory
     };
