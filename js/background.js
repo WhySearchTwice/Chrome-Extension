@@ -198,7 +198,6 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         }
         previousTab.focusHistory.push(focusStart);
     }
-
     // focus current page
     var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
     if (!currentTab.focusHistory) {
@@ -459,7 +458,7 @@ function updatePage(windowId, tabId) {
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/vertices/' + page.id + '/parsley/pageView', page);
         };
-    })(page)();
+    })(pageUpdate)();
 }
 
 /**
