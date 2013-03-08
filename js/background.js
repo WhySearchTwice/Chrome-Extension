@@ -4,7 +4,15 @@
  *
  * @type String
  */
-var SERVER = 'http://' + (chrome.i18n.getMessage('@@extension_id') === 'heflehdnackihajkcgimpkmffacccegh' ? 'prod' : 'dev') + '.whysearchtwice.com:8182';
+var SERVER = 'http://' + (chrome.app.getDetails().id === 'heflehdnackihajkcgimpkmffacccegh' ? 'prod' : 'dev') + '.whysearchtwice.com:8182';
+
+/**
+ * Extension version number. Read from manifest at background page load.
+ * @author ansel
+ *
+ * @type String
+ */
+var VERSION = chrome.app.getDetails().version;
 
 /**
  * A library of all known windows and the tabs they contain. Will be persisted to
@@ -136,6 +144,7 @@ chrome.windows.onRemoved.addListener(function(windowId) {
  * Event Listener - Tab Updated
  * Check if the tab is our storage, if so submit it. Create an entry for the
  * new page that has been loaded and store it in the session for its containing window.
+ * @author tony
  */
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.status === 'loading') {
@@ -148,6 +157,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
  * Event Listener - Page loaded
  * Called whenever a navigation takes place. Will attempt to add information
  * to the session about what is loading in a tab and how it was started
+ * @author tony
  */
 chrome.webNavigation.onCommitted.addListener(function(details) {
     var windowId = findWindowId(details.tabId);
@@ -165,18 +175,11 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
     }
 });
 
-chrome.webNavigation.onCompleted.addListener(function(details) {
-    // console.log('Completed: ' + details.url);
-});
-
-chrome.webNavigation.onTabReplaced.addListener(function(details) {
-    // console.log('Tab Replaced: New - ' + details.tabId + ' Old - ' + replacedTabId);
-});
-
 /**
  * Event Listener - Tab Focused
  * Called whenever a tab gains focus. Send an event with the tabID and windowId, and other
  * standard fields to write a trail of what the user is looking at.
+ * @author ansel
  */
 chrome.tabs.onActivated.addListener(function(activeInfo) {
     console.log('Tab focused, updating focus data...');
@@ -215,6 +218,7 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
  * Listen for tabs being attached to new windows. Create a new group for the window
  * in the session if it does not exist and add this tab to it. Remove the tab from the
  * old group.
+ * @author tony
  */
 chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
     var newWindowId = attachInfo.newWindowId;
@@ -252,6 +256,7 @@ chrome.tabs.onAttached.addListener(function(tabId, attachInfo) {
 /**
  * Event Listener - Tab closed
  * Listen for tabs being closed. Submit the tab and remove from the session.
+ * @author ansel
  */
 chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
     // If a window is being closed, ignore this event
@@ -278,6 +283,7 @@ chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
 
 /**
  * Adds page to session
+ * @author ansel
  *
  * @param {Mixed} tab String tabId or Tab tab
  */
@@ -333,6 +339,7 @@ function addToSession(tab) {
 
 /**
  * Search through the session looking for a tab with the given tabId.
+ * @author ansel
  *
  * @param {Int} tabId The id of a tab in question to search for
  * @return {Int} The windowId that contains the tabId. undefined if does not exist
@@ -348,6 +355,7 @@ function findWindowId(tabId) {
 
 /**
  * Encodes an object into query parameters
+ * @author ansel
  *
  * @param {Object} object Object to be encoded
  * @return {String} Encoded object
@@ -362,10 +370,12 @@ function buildQueryString(object) {
 
 /**
  * Complete missing fields in page object
+ * @author ansel
  *
  * @param {Object} page The page to be validated
  */
 function validatePage(page) {
+    page.clientVersion = VERSION;
     if (page.type !== 'pageView') { return page; }
 
     console.log('Adding userId to page object...');
@@ -384,6 +394,7 @@ function validatePage(page) {
 /**
  * Send a pageView object. Creates a closure that encapsulates the scope of the page
  * object while passing it between various functions before sending it.
+ * @author ansel
  *
  * @param {Int} windowId Chrome's window id
  * @param {Int} tabId Chrome's tab id
@@ -425,6 +436,7 @@ function sendPage(windowId, tabId) {
  * Send update to an exisitng pageView object.
  * Creates a closure that encapsulates the scope of the page object
  * while passing it between various functions before sending it.
+ * @author ansel
  *
  * @param {Int} windowId Chrome's window id
  * @param {Int} tabId Chrome's tab id
@@ -453,7 +465,6 @@ function updatePage(windowId, tabId) {
 /**
  * POST data to the server. Wrapper for AJAX
  * Validates that the object contains a userId and is not a newtab page before sending.
- *
  * @author ansel
  *
  * @param {String} url remote target of POST
@@ -466,6 +477,7 @@ function post(url, data, callback) {
 
 /**
  * GET data from the server. Wrapper for AJAX
+ * @author ansel
  *
  * @param {String} url remote target of POST
  * @param {Function} callback a function to be called on success. Will be passed the request object
@@ -476,6 +488,7 @@ function get(url, callback) {
 
 /**
  * AJAX helper function. Do not use this function directly
+ * @author ansel
  *
  * @param {String} url remote target of POST
  * @param {Mixed} data String or Object to be POSTed
@@ -545,24 +558,8 @@ function ajax(method, url, data, callback) {
 }
 
 /**
- * register new deviceId
- */
-function registerDevice() {
-    console.log('Fetching existing devices from Chrome Sync...');
-    chrome.storage.sync.get('devices', function(response) {
-        if (!response.devices) {
-            response.devices = [];
-        }
-        deviceId = localStorage.deviceId = userId + response.devices.length;
-        response.devices.push(deviceId);
-        chrome.storage.sync.set({'devices': response.devices}, function() {
-            console.log('Device registered.');
-        });
-    });
-}
-
-/**
  * Check Chrome Sync for conflicting environmental variables
+ * @author ansel
  */
 function validateEnvironment() {
     console.log('Validating local IDs with Chrome Sync... ');
@@ -579,6 +576,7 @@ function validateEnvironment() {
 
 /**
  * Deletes localStorage and Chrome sync data
+ * @author ansel
  */
 function reset() {
     localStorage.clear();
@@ -587,6 +585,7 @@ function reset() {
 
 /**
  * Prints spacer and style divider to log
+ * @author ansel
  */
 function endLogEvent() {
     console.log('%c\n================================================================================\n', 'background:#999;color:#fff;');
