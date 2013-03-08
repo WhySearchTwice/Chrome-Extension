@@ -9,7 +9,29 @@
     <link rel="stylesheet" href="/css/history.css">
 </head>
 <body>
-    <div ng-view></div>
+
+    <div class="navbar navbar-static-top">
+        <div class="navbar-inner">
+            <div class="container-fluid">
+                <span class="brand">Your History</span>
+                <form class="navbar-form pull-left">
+                    <input type="text" id="search" placeholder="Search for pages, dates, times, & devices...">
+                    <button class="btn btn-primary">
+                        <i class="icon-search"></i>
+                    </button>
+                </form>
+                <button class="btn pull-right">
+                    <i class="icon-cog"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row-fluid">
+            <div ng-view></div>
+        </div>
+    </div>
 
     <script src="/js/libs/jquery.min.js"></script>
     <script src="/js/libs/kinetic.min.js"></script>

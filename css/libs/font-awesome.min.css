@@ -23,7 +23,7 @@
 
 @font-face {
   font-family:'FontAwesome';
-  src: url('../font/fontawesome-webfont.ttf?v=3.0.1') format('truetype');
+  src: url('/font/fontawesome-webfont.ttf?v=3.0.1') format('truetype');
   font-weight:normal;
   font-style:normal
 }

@@ -1,0 +1,15 @@
+html,
+body {
+    height: 100%;
+}
+#search {
+    margin-right: 5px;
+    margin-left: 40px;
+    width: 300px;
+}
+
+.container-fluid {
+    height: calc(100% - 41px);
+    overflow: hidden;
+    padding: 0;
+}
