@@ -9,3 +9,6 @@
 
 # Webstorm
 .idea/
+
+# Web Store packages
+*.zip
