@@ -32,8 +32,6 @@ function KineticCtrl($scope) {
         $scope.stage.add(layer);
     };
 
-    $scope.
-
     $scope.drawNode(200, 400);
     $scope.drawNode(800, 300);
     $scope.drawNode(400, 100);
