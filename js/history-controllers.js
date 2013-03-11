@@ -9,12 +9,11 @@ function KineticCtrl($scope) {
         var layer = new Kinetic.Layer();
         var group = new Kinetic.Group({
             x: posx,
-            y: posy,
-            draggable: true
+            y: posy
         });
 
         var line = new Kinetic.Line({
-            points: [0, 45, 500, 45],
+            points: [0, 25, 500, 25],
             stroke: 'black',
             strokeWidth: 4
         });
@@ -24,9 +23,7 @@ function KineticCtrl($scope) {
             fontSize: 18,
             fontFamily: 'FontAwesome',
             fill: '#555',
-            width: 300,
-            padding: 20,
-            align: 'left'
+            width: 300
         });
 
         group.add(line);
@@ -34,6 +31,8 @@ function KineticCtrl($scope) {
         layer.add(group);
         $scope.stage.add(layer);
     };
+
+    $scope.
 
     $scope.drawNode(200, 400);
     $scope.drawNode(800, 300);
