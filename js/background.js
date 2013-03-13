@@ -425,6 +425,9 @@ function sendPage(windowId, tabId) {
                     requestQueue.queue.splice(0, 1);
                     requestQueue.flush();
                 }
+		/*Added by Matt*/
+		cacheSendPage(page, response.id);
+		
                 session.windows[page.windowId].tabs[page.tabId].id = response.id;
             });
         };
@@ -458,6 +461,9 @@ function updatePage(windowId, tabId) {
     (function(page) {
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/vertices/' + page.id + '/parsley/pageView', page);
+	    
+	    /*Added by Matt*/
+	    cacheUpdatePage(page);
         };
     })(pageUpdate)();
 }
