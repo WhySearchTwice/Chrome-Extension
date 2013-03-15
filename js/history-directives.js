@@ -15,8 +15,11 @@ angular.module('history.directives', [])
                     console.log(scope.pageVisits);
                     for (var i = 0; i < scope.pageVisits.length; i++) {
                         var ratio = window.innerWidth/3600000;
-                        var x1 = ratio * ((new Date()).getTime() - scope.pageVisits[i].pageOpenTime);
-                        var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : ratio * ((new Date()).getTime() - scope.pageVisits[i].pageCloseTime);
+                        var left = (new Date()).getTime() - 3600000;
+                        var x1 = ratio * (scope.pageVisits[i].pageOpenTime - left);
+                        var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : ratio * (scope.pageVisits[i].pageCloseTime - left);
+                        console.log("x1: " + x1);
+                        console.log("x2: " + x2);
                         console.log(x2);
                         scope.drawNode(x1, x2, i*50, scope.pageVisits[i]);
                     }
@@ -34,7 +37,6 @@ angular.module('history.directives', [])
                     });
 
                     var url = pagevisit.pageUrl || "Missing URL";
-
                     var line = new Kinetic.Line({
                         points: [0, 25, posx2 - posx1, 25],
                         stroke: 'black',
