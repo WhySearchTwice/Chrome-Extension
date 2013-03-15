@@ -10,6 +10,6 @@ body {
 
 .container-fluid {
     height: calc(100% - 41px);
-    overflow: hidden;
+    overflow-x: hidden;
     padding: 0;
 }

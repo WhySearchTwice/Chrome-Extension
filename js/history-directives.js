@@ -13,8 +13,8 @@ angular.module('history.directives', [])
 
                 scope.drawAll = function() {
                     for (var i = 0; i < scope.pageVisits.length; i++) {
-                        var ratio = window.innerWidth/3600000;
-                        var left = (new Date()).getTime() - 3600000;
+                        var ratio = window.innerWidth / (1000 * 60 * RANGE);
+                        var left = (new Date()).getTime() - (1000 * 60 * RANGE);
                         var x1 = ratio * (scope.pageVisits[i].pageOpenTime - left);
                         var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : ratio * (scope.pageVisits[i].pageCloseTime - left);
                         scope.drawNode(x1 - 200, x2 - 200, i*20, scope.pageVisits[i]);
@@ -23,6 +23,10 @@ angular.module('history.directives', [])
 
                 scope.$watch('pageVisits', function(newval, oldval){
                     scope.drawAll();
+                    scope.stage.setSize({
+                        width: window.innerWidth,
+                        height: 20 * scope.pageVisits.length
+                    });
                 }, true);
 
                 scope.drawNode = function(posx1, posx2, posy, pagevisit) {
@@ -33,6 +37,10 @@ angular.module('history.directives', [])
                     });
 
                     var url = pagevisit.pageUrl || "Missing URL";
+                    // truncate URLs loner than 50 chars
+                    if (url.length > 50) {
+                        url = url.substr(0, 50) + '...';
+                    }
                     var line = new Kinetic.Line({
                         points: [0, 15, posx2 - posx1, 15],
                         stroke: 'black',
@@ -56,7 +64,7 @@ angular.module('history.directives', [])
                 // draw now line
                 var layer = new Kinetic.Layer();
                 var line = new Kinetic.Line({
-                    points: [window.innerWidth - 200, 0, window.innerWidth - 200, window.innerHeight],
+                    points: [window.innerWidth - 200, 0, window.innerWidth - 200, 10000],
                     stroke: 'red',
                     strokeWidth: 4
                 });
