@@ -6,7 +6,8 @@ angular.module('history.services', [], function($provide) {
      */
     $provide.factory('background', function() {
         var globals = {
-            SERVER: 'http://prod.whysearchtwice.com:8182'
+            SERVER: 'http://prod.whysearchtwice.com:8182',
+            userGuid: '78040'
         };
         return {
             get: function(global) {
@@ -33,9 +34,9 @@ angular.module('history.services', [], function($provide) {
              * Search the graph with Rexster
              * @author Ansel
              *
-             * @param  {String} userGuid   Local user GUID
              * @param  {Int}    targetTime Unix time in middle of range
              * @param  {Object} params     Optional search arguments
+             *             userGuid             If userGuid is different than the local user
              *             domain               All search results will be under this domain (ex. google.com)
              *             timeRange            Number of timeRangeUnits to search on either side of the openTime (default: 30)
              *             timeRangeUnits       hours, minutes, seconds (default: minutes)
@@ -44,10 +45,10 @@ angular.module('history.services', [], function($provide) {
              *
              * @return {Object}            Angular Promise
              */
-            search: function(userGuid, targetTime, params) {
+            search: function(targetTime, params) {
                 var encoded = [];
                 params = params || {};
-                params.userGuid = userGuid;
+                params.userGuid = params.userGuid || background.get('userGuid');
                 params.openTime = targetTime;
                 for (var key in params) {
                     encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));

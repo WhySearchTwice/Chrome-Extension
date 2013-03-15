@@ -1,7 +1,7 @@
 function KineticCtrl($scope, rexster) {
     $scope.nodes = 4;
     rexster
-        .search('78040', (new Date()).getTime(), '', {})
+        .search((new Date()).getTime(), '', {})
         .then(function(response) {
             console.log(response.data);
         })
