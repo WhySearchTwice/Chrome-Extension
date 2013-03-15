@@ -12,8 +12,13 @@ angular.module('history.directives', [])
                 });
 
                 scope.drawAll = function() {
+                    console.log(scope.pageVisits);
                     for (var i = 0; i < scope.pageVisits.length; i++) {
-                        scope.drawNode(i*100, i*100, scope.pageVisits[i].pageUrl);
+                        var ratio = window.innerWidth/3600000;
+                        var x1 = ratio * ((new Date()).getTime() - scope.pageVisits[i].pageOpenTime);
+                        window.console.log(x1);
+                        var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : (new Date()).getTime() - scope.pageVisits[i].pageCloseTime;
+                        scope.drawNode(x1, x2, i*10, scope.pageVisits[i]);
                     }
                 };
 
@@ -21,17 +26,17 @@ angular.module('history.directives', [])
                     scope.drawAll();
                 }, true);
 
-                scope.drawNode = function(posx, posy, urlval) {
+                scope.drawNode = function(posx1, posx2, posy, pagevisit) {
                     var layer = new Kinetic.Layer();
                     var group = new Kinetic.Group({
-                        x: posx,
+                        x: posx1,
                         y: posy
                     });
 
-                    var url = (urlval === undefined) ? "Missing URL" : urlval;
+                    var url = pagevisit.pageUrl || "Missing URL";
 
                     var line = new Kinetic.Line({
-                        points: [0, 25, 500, 25],
+                        points: [0, 25, posx2 - posx1, 25],
                         stroke: 'black',
                         strokeWidth: 4
                     });
