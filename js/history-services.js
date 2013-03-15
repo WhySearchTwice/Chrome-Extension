@@ -41,7 +41,7 @@ angular.module('history.services', [], function($provide) {
                 background.get(['userGuid','SERVER'], function(globals) {
                     var encoded = [];
                     params = params || {};
-                    params.userGuid = params.userGuid || globals.userGuid;
+                    params.userGuid = localStorage.userGuid || params.userGuid || globals.userGuid;
                     params.openTime = targetTime;
                     for (var key in params) {
                         encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));

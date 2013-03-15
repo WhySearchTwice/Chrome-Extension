@@ -1,7 +1,7 @@
 function Tree($scope, rexster) {
     $scope.pageViews = [];
     $scope.now = function() {
-        return (new Date()).getTime();
+        return localStorage.targetTime || (new Date()).getTime();
     };
     $scope.range = localStorage.range || 30;            // range in minutes
     $scope.offset = localStorage.offset || 100;         // right offset in px
