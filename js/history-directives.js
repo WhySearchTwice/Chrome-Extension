@@ -21,7 +21,7 @@ angular.module('history.directives', [])
                         console.log("x1: " + x1);
                         console.log("x2: " + x2);
                         console.log(x2);
-                        scope.drawNode(x1, x2, i*50, scope.pageVisits[i]);
+                        scope.drawNode(x1, x2, i*20, scope.pageVisits[i]);
                     }
                 };
 
@@ -38,15 +38,15 @@ angular.module('history.directives', [])
 
                     var url = pagevisit.pageUrl || "Missing URL";
                     var line = new Kinetic.Line({
-                        points: [0, 25, posx2 - posx1, 25],
+                        points: [0, 15, posx2 - posx1, 15],
                         stroke: 'black',
                         strokeWidth: 4
                     });
 
                     var text = new Kinetic.Text({
                         text: url,
-                        fontSize: 18,
-                        fontFamily: 'FontAwesome',
+                        fontSize: 13,
+                        fontFamily: 'Arial',
                         fill: '#555',
                         width: 800
                     });
