@@ -18,13 +18,6 @@
     "chrome_url_overrides" : {
         "history": "html/history.html"
     },
-    "content_scripts": [
-        {
-            "matches": ["<all_urls>"],
-            "js": ["js/scout.js"],
-            "all_frames": true
-        }
-    ],
     "homepage_url": "http://whysearchtwice.com",
     "incognito": "spanning",
     "omnibox": {
