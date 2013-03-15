@@ -4,75 +4,81 @@ angular.module('history.directives', [])
             restrict: 'E',
             replace: true,
             template: '<div id="container"></div>',
-            link:function postLink(scope, iElement, iAttrs) {
-                scope.stage = new Kinetic.Stage({
+            link:function postLink($scope, iElement, iAttrs) {
+                // create stage
+                $scope.stage = new Kinetic.Stage({
                     container: 'container',
                     width: window.innerWidth,
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
 
-                scope.drawAll = function() {
-                    for (var i = 0; i < scope.pageVisits.length; i++) {
-                        var ratio = window.innerWidth / (1000 * 60 * RANGE);
-                        var left = (new Date()).getTime() - (1000 * 60 * RANGE);
-                        var x1 = ratio * (scope.pageVisits[i].pageOpenTime - left);
-                        var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : ratio * (scope.pageVisits[i].pageCloseTime - left);
-                        scope.drawNode(x1 - 200, x2 - 200, i*20, scope.pageVisits[i]);
+                // set and execute
+                $scope.drawAll = function() {
+                    for (var i = 0; i < $scope.pageViews.length; i++) {
+                        // px to ms ratio
+                        var ratio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range); // ratio = effective canvas / range in ms
+                        var leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);              // leftTime = now - range in ms
+                        var start = ratio * ($scope.pageViews[i].pageOpenTime - leftTime);
+                        var end = $scope.pageViews[i].pageCloseTime ? ratio * ($scope.pageViews[i].pageCloseTime - leftTime) : window.innerWidth - $scope.offset;
+                        $scope.drawNode(start, end, i * $scope.lineHeight, $scope.pageViews[i]);
                     }
                 };
 
-                scope.$watch('pageVisits', function(newval, oldval){
-                    scope.drawAll();
-                    scope.stage.setSize({
+                $scope.$watch('pageViews', function() {
+                    $scope.drawAll();
+                    $scope.stage.setSize({
                         width: window.innerWidth,
-                        height: 20 * scope.pageVisits.length
+                        height: $scope.lineHeight * $scope.pageViews.length
                     });
                 }, true);
 
-                scope.drawNode = function(posx1, posx2, posy, pagevisit) {
+                $scope.drawNode = function(start, end, y, pageView) {
                     var layer = new Kinetic.Layer();
                     var group = new Kinetic.Group({
-                        x: posx1,
-                        y: posy
+                        x: start,
+                        y: y
                     });
 
-                    var url = pagevisit.pageUrl || "Missing URL";
+                    var line = new Kinetic.Line({
+                        points: [0, 15, end - start, 15],
+                        stroke: end === window.innerWidth - $scope.offset ? 'blue' : 'black', // blue == still open
+                        strokeWidth: 4
+                    });
+
+                    var url = pageView.pageUrl || 'Missing URL';
                     // truncate URLs loner than 50 chars
                     if (url.length > 50) {
                         url = url.substr(0, 50) + '...';
                     }
-                    var line = new Kinetic.Line({
-                        points: [0, 15, posx2 - posx1, 15],
-                        stroke: 'black',
-                        strokeWidth: 4
-                    });
 
                     var text = new Kinetic.Text({
                         text: url,
                         fontSize: 13,
                         fontFamily: 'Arial',
-                        fill: '#555',
-                        width: 800
+                        fill: '#aaa',
+                        width: 800,
+                        x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
                     });
 
                     group.add(line);
                     group.add(text);
                     layer.add(group);
-                    scope.stage.add(layer);
+                    $scope.stage.add(layer);
                 };
 
                 // draw now line
                 var layer = new Kinetic.Layer();
                 var line = new Kinetic.Line({
-                    points: [window.innerWidth - 200, 0, window.innerWidth - 200, 10000],
+                    points: [window.innerWidth - $scope.offset, 0, window.innerWidth - $scope.offset, 10000],
                     stroke: 'red',
-                    strokeWidth: 4
+                    strokeWidth: 2
                 });
                 layer.add(line);
-                scope.stage.add(layer);
-
-                scope.drawAll();
+                $scope.stage.add(layer);
+                $scope.drawAll();
             },
-            controller: KineticCtrl
+            controller: Tree
         };
-    });
+    })
+
+;
