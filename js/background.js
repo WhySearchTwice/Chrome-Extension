@@ -79,8 +79,12 @@ chrome.extension.onMessage.addListener(
     function(request, sender, sendResponse) {
         switch (request.action) {
 
-        case 'getGlobal':
-            sendResponse(window[request.message]);
+        case 'getGlobals':
+            var globals = {};
+            for (var i = 0, l = request.message.length; i < l; i++) {
+                globals[request.message[i]] = window[request.message[i]];
+            }
+            sendResponse(globals);
             break;
 
         default:

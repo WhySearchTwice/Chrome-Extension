@@ -5,21 +5,12 @@ angular.module('history.services', [], function($provide) {
      * @author Ansel
      */
     $provide.factory('background', function() {
-        var globals = {
-            SERVER: 'http://prod.whysearchtwice.com:8182',
-            userGuid: '78040'
-        };
         return {
-            get: function(global) {
-                if (globals[global]) { return globals[global]; }
-                else {
-                    chrome.extension.sendMessage({
-                        action: 'getGlobal',
-                        message: global
-                    }, function(response) {
-                        return response;
-                    });
-                }
+            get: function(globals, callback) {
+                chrome.extension.sendMessage({
+                    action: 'getGlobals',
+                    message: globals
+                }, callback);
             }
         };
     });
@@ -47,21 +38,23 @@ angular.module('history.services', [], function($provide) {
              * @return {Object}            Angular Promise
              */
             search: function(targetTime, params, callback) {
-                var encoded = [];
-                params = params || {};
-                params.userGuid = params.userGuid || background.get('userGuid');
-                params.openTime = targetTime;
-                for (var key in params) {
-                    encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
-                }
-                return $http
-                    .get(background.get('SERVER') + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'))
-                    .then(function(response) {
-                        var results = JSON.parse(response.data.results);
-                        if (typeof params === 'function') { params(results); }
-                        if (typeof callback === 'function') { callback(results); }
-                    })
-                ;
+                background.get(['userGuid','SERVER'], function(globals) {
+                    var encoded = [];
+                    params = params || {};
+                    params.userGuid = params.userGuid || globals.userGuid;
+                    params.openTime = targetTime;
+                    for (var key in params) {
+                        encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
+                    }
+                    return $http
+                        .get(globals.SERVER + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'))
+                        .then(function(response) {
+                            var results = JSON.parse(response.data.results);
+                            if (typeof params === 'function') { params(results); }
+                            if (typeof callback === 'function') { callback(results); }
+                        })
+                    ;
+                });
             }
         };
     }]);
