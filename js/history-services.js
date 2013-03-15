@@ -42,10 +42,11 @@ angular.module('history.services', [], function($provide) {
              *             timeRangeUnits       hours, minutes, seconds (default: minutes)
              *             includeChildren      If true, return all children of search results along with the results (default: false)
              *             includeSuccessors    If true, return all successors of any search results along with the results (default: false)
+             * @param {Function} callback  Optional callback function
              *
              * @return {Object}            Angular Promise
              */
-            search: function(targetTime, params) {
+            search: function(targetTime, params, callback) {
                 var encoded = [];
                 params = params || {};
                 params.userGuid = params.userGuid || background.get('userGuid');
@@ -53,7 +54,14 @@ angular.module('history.services', [], function($provide) {
                 for (var key in params) {
                     encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
                 }
-                return $http.get(background.get('SERVER') + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'));
+                return $http
+                    .get(background.get('SERVER') + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'))
+                    .then(function(response) {
+                        var results = JSON.parse(response.data.results);
+                        if (typeof params === 'function') { params(results); }
+                        if (typeof callback === 'function') { callback(results); }
+                    })
+                ;
             }
         };
     }]);
