@@ -24,22 +24,22 @@ var VERSION = chrome.app.getDetails().version;
 var session = localStorage.session || { windows: {} };
 
 /**
- * userId must be submitted with every request. Consists of email address of user
+ * userGuid must be submitted with every request. Consists of email address of user
  * and is stored to localStorage after initial retrieval. Retrieve if missing.
  * @author ansel
  *
  * @type String
  */
-var userId = localStorage.userId;
+var userGuid = localStorage.userGuid;
 
 /**
- * deviceId uniquely identifies this device and will be stored to localStorage after
+ * deviceGuid uniquely identifies this device and will be stored to localStorage after
  * initial generation. Retrieve if missing.
  * @author ansel
  *
  * @type String
  */
-var deviceId = localStorage.deviceId;
+var deviceGuid = localStorage.deviceGuid;
 
 /**
  * requestQueue Keeps track of requestQueue and whether requests should be queued
@@ -377,13 +377,13 @@ function validatePage(page) {
     page.clientVersion = VERSION;
     if (page.type !== 'pageView') { return page; }
 
-    console.log('Adding userId to page object...');
-    page.userGuid = userId;
-    console.log('Adding deviceId to page object...');
-    page.deviceGuid = deviceId;
+    console.log('Adding userGuid to page object...');
+    page.userGuid = userGuid;
+    console.log('Adding deviceGuid to page object...');
+    page.deviceGuid = deviceGuid;
 
-    if ((!userId || !deviceId) && !requestQueue.isActive) {
-        console.log('userId or deviceId missing. Activating queuing');
+    if ((!userGuid || !deviceGuid) && !requestQueue.isActive) {
+        console.log('userGuid or deviceGuid missing. Activating queuing');
         requestQueue.isActive = true;
     }
 
@@ -414,11 +414,11 @@ function sendPage(windowId, tabId) {
                 response = JSON.parse(response.response);
                 if (response.userGuid || response.deviceGuid) {
                     if (response.userGuid) {
-                        userId = localStorage.userId = response.userGuid;
-                        chrome.storage.sync.set({'userId': response.userGuid});
+                        userGuid = localStorage.userGuid = response.userGuid;
+                        chrome.storage.sync.set({'userGuid': response.userGuid});
                     }
                     if (response.deviceGuid) {
-                        deviceId = localStorage.deviceId = response.deviceGuid;
+                        deviceGuid = localStorage.deviceGuid = response.deviceGuid;
                     }
                     // flush requests & remove fencepost
                     requestQueue.isActive = false;
@@ -427,7 +427,7 @@ function sendPage(windowId, tabId) {
                 }
 		/*Added by Matt*/
 		cacheSendPage(page, response.id);
-		
+
                 session.windows[page.windowId].tabs[page.tabId].id = response.id;
             });
         };
@@ -461,7 +461,7 @@ function updatePage(windowId, tabId) {
     (function(page) {
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/vertices/' + page.id + '/parsley/pageView', page);
-	    
+
 	    /*Added by Matt*/
 	    cacheUpdatePage(page);
         };
@@ -470,7 +470,7 @@ function updatePage(windowId, tabId) {
 
 /**
  * POST data to the server. Wrapper for AJAX
- * Validates that the object contains a userId and is not a newtab page before sending.
+ * Validates that the object contains a userGuid and is not a newtab page before sending.
  * @author ansel
  *
  * @param {String} url remote target of POST
@@ -569,12 +569,12 @@ function ajax(method, url, data, callback) {
  */
 function validateEnvironment() {
     console.log('Validating local IDs with Chrome Sync... ');
-    chrome.storage.sync.get('userId', function(response) {
-        if (!response.userId) {
+    chrome.storage.sync.get('userGuid', function(response) {
+        if (!response.userGuid) {
             requestQueue.ping();
             return;
-        } else if (response.userId !== userId) {
-            userId = localStorage.userId = response.userId;
+        } else if (response.userGuid !== userGuid) {
+            userGuid = localStorage.userGuid = response.userGuid;
         }
         requestQueue.isActive = false;
     });
