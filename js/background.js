@@ -72,7 +72,25 @@ var requestQueue = {
 })();
 
 /**
- * Listen for connections
+ * Listen for short-lived connections
+ * @author ansel
+ */
+chrome.extension.onMessage.addListener(
+    function(request, sender, sendResponse) {
+        switch (request.action) {
+
+        case 'getGlobal':
+            sendResponse(window[request.message]);
+            break;
+
+        default:
+            break;
+        }
+    }
+);
+
+/**
+ * Listen for long-lived connections
  * @author ansel
  */
 chrome.extension.onConnect.addListener(function(port) {
