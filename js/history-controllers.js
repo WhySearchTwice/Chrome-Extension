@@ -1,6 +1,6 @@
 function KineticCtrl($scope, rexster) {
-    $scope.nodes = 4;
+    $scope.pageVisits = [];
     rexster.search((new Date()).getTime(), function(response) {
-        console.log(response);
+        angular.extend($scope.pageVisits, response);
     });
 }

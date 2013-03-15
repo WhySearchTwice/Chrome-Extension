@@ -12,17 +12,23 @@ angular.module('history.directives', [])
                 });
 
                 scope.drawAll = function() {
-                    for (var i = 0; i < scope.nodes; i++) {
-                        scope.drawNode(i*200 + 300, i*150 + 200);
+                    for (var i = 0; i < scope.pageVisits.length; i++) {
+                        scope.drawNode(i*100, i*100, scope.pageVisits[i].pageUrl);
                     }
                 };
 
-                scope.drawNode = function(posx, posy) {
+                scope.$watch('pageVisits', function(newval, oldval){
+                    scope.drawAll();
+                }, true);
+
+                scope.drawNode = function(posx, posy, urlval) {
                     var layer = new Kinetic.Layer();
                     var group = new Kinetic.Group({
                         x: posx,
                         y: posy
                     });
+
+                    var url = (urlval === undefined) ? "Missing URL" : urlval;
 
                     var line = new Kinetic.Line({
                         points: [0, 25, 500, 25],
@@ -31,11 +37,11 @@ angular.module('history.directives', [])
                     });
 
                     var text = new Kinetic.Text({
-                        text: 'www.google.com',
+                        text: url,
                         fontSize: 18,
                         fontFamily: 'FontAwesome',
                         fill: '#555',
-                        width: 300
+                        width: 800
                     });
 
                     group.add(line);
