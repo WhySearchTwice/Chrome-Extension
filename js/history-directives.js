@@ -16,9 +16,9 @@ angular.module('history.directives', [])
                     for (var i = 0; i < scope.pageVisits.length; i++) {
                         var ratio = window.innerWidth/3600000;
                         var x1 = ratio * ((new Date()).getTime() - scope.pageVisits[i].pageOpenTime);
-                        window.console.log(x1);
-                        var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : (new Date()).getTime() - scope.pageVisits[i].pageCloseTime;
-                        scope.drawNode(x1, x2, i*10, scope.pageVisits[i]);
+                        var x2 = (scope.pageVisits[i].pageCloseTime === undefined) ? window.innerWidth : ratio * ((new Date()).getTime() - scope.pageVisits[i].pageCloseTime);
+                        console.log(x2);
+                        scope.drawNode(x1, x2, i*50, scope.pageVisits[i]);
                     }
                 };
 
