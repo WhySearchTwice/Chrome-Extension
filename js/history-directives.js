@@ -1,3 +1,6 @@
+/* JSHint: */
+/* global Tree */
+
 angular.module('history.directives', [])
     .directive('kinetic', function($timeout) {
         return {
@@ -11,6 +14,8 @@ angular.module('history.directives', [])
                     width: window.innerWidth,
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
+
+                $scope.pageViews = []; // TODO: REMOVE ME
 
                 // set and execute
                 $scope.drawAll = function() {
