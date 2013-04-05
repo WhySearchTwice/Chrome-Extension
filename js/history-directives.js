@@ -2,7 +2,7 @@
 /* global Tree */
 
 angular.module('history.directives', [])
-    .directive('kinetic', function($timeout) {
+    .directive('kinetic', function($timeout, $window) {
         return {
             restrict: 'E',
             replace: true,
@@ -15,28 +15,52 @@ angular.module('history.directives', [])
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
 
-                $scope.pageViews = []; // TODO: REMOVE ME
+                $scope.$watch('tree.indexed', function() {
+                    $scope.drawAll(); // ToDo: Change to update an update function
+                    $scope.stage.setSize({
+                        width: $scope.viewportWidth,
+                        height: $scope.lineHeight * $scope.tree.indexed.length
+                    });
+                }, true);
 
-                // set and execute
+                $scope.viewportWidth = $window.innerWidth;
+                angular.element($window).bind('resize', function() {
+                    $scope.$apply(function() {
+                        $scope.viewportWidth = $window.innerWidth;
+                        $scope.viewportHeight = $window.innerHeight;
+                    });
+                });
+
+                $scope.$watch('viewportWidth', function(newValue, oldValue) {
+                    $scope.stage.setSize({
+                        width: newValue
+                    });
+                });
+
+                /**
+                 * Draw all nodes in $scope.tree.indexed
+                 * @author chris, ansel
+                 */
                 $scope.drawAll = function() {
-                    for (var i = 0; i < $scope.pageViews.length; i++) {
+                    for (var i = 0; i < $scope.tree.indexed.length; i++) {
                         // px to ms ratio
-                        var ratio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range); // ratio = effective canvas / range in ms
-                        var leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);              // leftTime = now - range in ms
+                        var ratio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // ratio = effective canvas / range in ms
+                        var leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);             // leftTime = now - range in ms
                         var start = ratio * ($scope.pageViews[i].pageOpenTime - leftTime);
                         var end = $scope.pageViews[i].pageCloseTime ? ratio * ($scope.pageViews[i].pageCloseTime - leftTime) : window.innerWidth - $scope.offset;
                         $scope.drawNode(start, end, i * $scope.lineHeight, $scope.pageViews[i]);
                     }
                 };
 
-                $scope.$watch('pageViews', function() {
-                    $scope.drawAll();
-                    $scope.stage.setSize({
-                        width: window.innerWidth,
-                        height: $scope.lineHeight * $scope.pageViews.length
-                    });
-                }, true);
-
+                /**
+                 * Draw a single node
+                 * @author chris
+                 *
+                 * @param  {Int} start    pageOpenTime on x axis
+                 * @param  {Int} end      pageCloseTime on x axis
+                 * @param  {Int} y        top position in stack
+                 * @param  {Int} pageView pageView Object
+                 */
                 $scope.drawNode = function(start, end, y, pageView) {
                     var layer = new Kinetic.Layer();
                     var group = new Kinetic.Group({
