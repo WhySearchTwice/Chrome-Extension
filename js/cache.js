@@ -4,7 +4,8 @@ It's also owned by Matt so check with him before you mess with it.
 Ok fine you can mess with it but just tell him.
 
 Todo:
-sproc to clear old rows
+No stored procedures possible :(
+How can I return a value from a async function?
 Read from cache
 Database to cache
 */
@@ -140,8 +141,8 @@ function dumpDatabase() {
 
 function databaseRowCount() {
     db.transaction(function (tx) {
-        tx.executeSql('SELECT count(*) from views', null, function (tx, results) {
-            console.log(results.rowsAffected);
+        tx.executeSql('SELECT * FROM views', null, function (tx, results) {
+            return results.rows.length;
         }, errorHandle);
     });
 }
