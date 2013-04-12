@@ -49,7 +49,7 @@ angular.module('history.services', [], function($provide) {
                     return $http
                         .get(globals.SERVER + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'))
                         .then(function(response) {
-                            var results = JSON.parse(response.data.results);
+                            var results = response.data.results;
                             console.log('Search response:');
                             console.log(results);
                             if (typeof params === 'function') { params(results); }
