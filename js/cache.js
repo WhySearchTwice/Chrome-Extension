@@ -4,14 +4,12 @@ It's also owned by Matt so check with him before you mess with it.
 Ok fine you can mess with it but just tell him.
 
 Todo:
-No stored procedures possible :(
-How can I return a value from a async function?
 Read from cache
 Database to cache
 */
 
-var dbName = 'aphid';
-var dbVersion = '0.0';
+var dbName = 'beetle';
+var dbVersion = '0.1';
 var dbDescription = 'cache of web usage';
 var dbSize = 5 * 1024 * 1024 + ''; //5 Megabytes
 
@@ -19,6 +17,8 @@ var db = openDatabase(dbName,
                       dbVersion,
                       dbDescription,
                       dbSize);
+
+var maxRows = 10;
 
 function con(string) {
     console.log('%c' + string, 'background: #00CC00; color: #000000');
@@ -30,9 +30,10 @@ function initializeDatabase() {
     var views = 'CREATE TABLE IF NOT EXISTS views (' +
                      'id INT NOT NULL, ' +
                      'url TEXT NOT NULL, ' +
-                     'parentId INT NOT NULL , ' +
-                     'openTime TIMESTAMP NOT NULL,' +
+                     'parentId INT NOT NULL, ' +
+                     'openTime TIMESTAMP NOT NULL, ' +
                      'closeTime TIMESTAMP NOT NULL, ' +
+                     'insertTime TIMESTAMP NOT NULL, ' +
                      'PRIMARY KEY (id)' +
                 ')';
     var focus = 'CREATE TABLE IF NOT EXISTS focus (' +
@@ -62,20 +63,43 @@ function cacheSendPage(page, id) {
         page.parentId = -1;
     }
 
-    if (validateSendPage(page, id)) {
-        db.transaction(function (tx) {
-            tx.executeSql('INSERT INTO views (id, url, parentId, ' +
-                          'openTime, closeTime) ' +
-                          'VALUES (?, ?, ?, ?, ?)',
-                           [id,
-                            page.pageUrl,
-                            page.parentId,
-                            page.pageOpenTime,
-                            -1], undefined, errorHandle);
-        });
-    } else {
-        con("invalid page in cacheSendPage");
+    if (!validateSendPage(page, id)) {
+        con("invalid page in cacheSendPge");
     }
+
+    db.transaction(function (tx) {
+        tx.executeSql('SELECT * from views',
+                      [],
+                      function (tx, results) {
+                          console.log("results:");
+                          console.log(results.rows.length);
+                          if (results.rows.length > maxRows) {
+                              db.transaction(function (tx2) {
+                                  tx2.executeSql('DELETE FROM views ' +
+                                                 'WHERE insertTime = ' +
+                                                 '(SELECT min(insertTime) FROM views)',
+                                                 [],
+                                                 undefined,
+                                                 errorHandle);
+                              });
+                          }
+                          db.transaction(function (tx3) {
+                              
+                              tx3.executeSql('INSERT INTO views (id, url, parentId, ' +
+                                             'openTime, closeTime, insertTime) ' +
+                                             'VALUES (?, ?, ?, ?, ?, ?)',
+                                             [id,
+                                              page.pageUrl,
+                                              page.parentId,
+                                              page.pageOpenTime,
+                                              -1,
+                                              (new Date()).getTime()],
+                                             undefined,
+                                             errorHandle);
+                          });                      
+                      },
+                      errorHandle);
+    });
 }
 
 function validateUpdatePage(page) {
@@ -83,7 +107,8 @@ function validateUpdatePage(page) {
            typeof(page.id) != 'undefined' &&
            typeof(page.pageCloseTime) != 'undefined';
 }
-    
+
+//TODO: Update Robustness
 function cacheUpdatePage(page) {
     con("cacheUpdatePage");
     console.log(page);
@@ -133,12 +158,14 @@ function dumpDatabase() {
                     results.rows.item(i).url + ", " +
                     results.rows.item(i).parentId + ", " +
                     results.rows.item(i).openTime + ", " +
-                    results.rows.item(i).closeTime);
+                    results.rows.item(i).closeTime + ", " +
+                    results.rows.item(i).insertTime);
             }
         }, errorHandle);
     });
 }
 
+//to be removed
 function databaseRowCount() {
     db.transaction(function (tx) {
         tx.executeSql('SELECT * FROM views', null, function (tx, results) {
