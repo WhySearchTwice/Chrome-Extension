@@ -662,10 +662,10 @@ function validateEnvironment() {
  * @author ansel
  */
 function cleanDatastore() {
-    chrome.tabs.query({}, function(queryInfo) {
+    chrome.tabs.query({}, function(tabs) {
         var snapshot = {};
-        for (var i = 0, l = queryInfo.length; i < l; i++) {
-            snapshot[queryInfo[i].id] = queryInfo[i].url;
+        for (var i = 0, l = tabs.length; i < l; i++) {
+            snapshot[tabs[i].id] = tabs[i].url;
         }
         post(SERVER + '/graphs/WhySearchTwice/vertices/' + deviceGuid + '/parsley/cleanup/closeTabs', snapshot);
     });
