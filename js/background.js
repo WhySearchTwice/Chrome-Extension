@@ -657,8 +657,18 @@ function validateEnvironment() {
     });
 }
 
+/**
+ * Sends session snapshot to server to close open tabs that do not exist anymore
+ * @author ansel
+ */
 function cleanDatastore() {
-
+    chrome.tabs.query({}, function(queryInfo) {
+        var snapshot = {};
+        for (var i = 0, l = queryInfo.length; i < l; i++) {
+            snapshot[queryInfo[i].id] = queryInfo[i].url;
+        }
+        post(SERVER + '/graphs/WhySearchTwice/vertices/' + deviceGuid + '/parsley/cleanup/closeTabs', snapshot);
+    });
 }
 
 /**
