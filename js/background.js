@@ -210,7 +210,8 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
  * @author ansel
  */
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    console.log('Tab focused, updating focus data...');
+    console.log('Tab focused.');
+    console.log('Updating previous tab focus data...');
     var focusStart = (new Date()).getTime();
     // check if previous tab is in session
     if (!session.windows[activeInfo.windowId] ||
@@ -226,6 +227,11 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         }
         previousTab.focusHistory.push(focusStart);
     }
+    onTabFocused(activeInfo, focusStart);
+});
+
+function onTabFocused(activeInfo, focusStart) {
+    console.log('Updating current tab focus data...');
     if (session.windows[activeInfo.windowId] &&
         session.windows[activeInfo.windowId].tabs[activeInfo.tabId]
     ) {
@@ -240,9 +246,15 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
 
         console.log('Updated focus data:');
         console.log(currentTab);
+    } else {
+        setTimeout((function(activeInfo, focusStart) {
+            return function() {
+                onTabFocused(activeInfo, focusStart);
+            };
+        })(activeInfo, focusStart), 500);
     }
     endLogEvent();
-});
+}
 
 /**
  * Event Listener - Tab moved to new Window
