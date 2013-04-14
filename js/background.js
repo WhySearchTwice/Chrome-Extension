@@ -68,6 +68,7 @@ var requestQueue = {
                 addToSession(windows[i].tabs[j]);
             }
         }
+        cleanDatastore();
     });
 })();
 
@@ -220,17 +221,21 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         }
         previousTab.focusHistory.push(focusStart);
     }
-    // focus current page
-    var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
-    if (!currentTab.focusHistory) {
-        currentTab.focusHistory = [];
+    if (session.windows[activeInfo.windowId] &&
+        session.windows[activeInfo.windowId].tabs[activeInfo.tabId]
+    ) {
+        // focus current page
+        var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
+        if (!currentTab.focusHistory) {
+            currentTab.focusHistory = [];
+        }
+        currentTab.focusHistory.push(focusStart);
+
+        session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
+
+        console.log('Updated focus data:');
+        console.log(currentTab);
     }
-    currentTab.focusHistory.push(focusStart);
-
-    session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
-
-    console.log('Updated focus data:');
-    console.log(currentTab);
     endLogEvent();
 });
 
@@ -600,6 +605,10 @@ function validateEnvironment() {
         }
         requestQueue.isActive = false;
     });
+}
+
+function cleanDatastore() {
+
 }
 
 /**
