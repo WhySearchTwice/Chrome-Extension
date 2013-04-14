@@ -73,6 +73,12 @@ var requestQueue = {
 })();
 
 /**
+ * Listen for history button click, open history
+ * @author  ansel
+ */
+chrome.browserAction.onClicked.addListener(openHistory);
+
+/**
  * Listen for short-lived connections
  * @author ansel
  */
@@ -117,8 +123,7 @@ chrome.extension.onConnect.addListener(function(port) {
             switch (request.action) {
 
             case 'openHistory':
-                console.log('Opening history...');
-                chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
+                openHistory();
                 break;
 
             default:
@@ -588,6 +593,15 @@ function ajax(method, url, data, callback) {
         }
     };
     request.send(JSON.stringify(data));
+}
+
+/**
+ * Opens the history page
+ * @author ansel
+ */
+function openHistory() {
+    console.log('Opening history...');
+    chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
 }
 
 /**
