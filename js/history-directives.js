@@ -16,9 +16,11 @@ angular.module('history.directives', [])
                 });
 
                 $scope.$watch('tree.built', function() {
-                    var ratio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // ratio = effective canvas / range in ms
-                    var leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);             // leftTime = now - range in ms
-                    $scope.drawAll($scope.tree.built.root, ratio, leftTime);
+                    $scope.pixelRatio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // pixelRatio = effective canvas / range in ms
+                    $scope.leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);                  // leftTime = now - range in ms
+                    for (var subtree in $scope.tree.built.root) {
+                        $scope.drawSubtree($scope.tree.built.root[subtree]);
+                    }
                     $scope.stage.setSize({
                         width: $scope.viewportWidth,
                         height: $scope.lineHeight * 35
@@ -40,27 +42,29 @@ angular.module('history.directives', [])
                 });
 
                 /**
-                 * Draw all nodes in $scope.tree.built
+                 * Recursively draw all nodes in a subtree tree
                  * @author chris, ansel
+                 *
+                 * @param {Object} subtree subtree to be subtree
                  */
-                $scope.drawAll = function(built, ratio, leftTime) {
-                    console.log("Logging built tree to be drawn");
-                    console.log(built);
-                    for (var nodeGroup in built) {
-                        var start = ratio * (nodeGroup.node.pageOpenTime - leftTime);
-                        var end = nodeGroup.node.pageCloseTime ? ratio * (nodeGroup.node.pageCloseTime - leftTime) : window.innerWidth - $scope.offset;
+                $scope.drawSubtree = function(subtree) {
+                    console.log('Drawing:');
+                    console.log(subtree);
+                    if (subtree.node) {
+                        var start = $scope.pixelRatio * (subtree.node.pageOpenTime - $scope.leftTime);
+                        var end = subtree.node.pageCloseTime ? start : window.innerWidth - $scope.offset;
                         var group = new Kinetic.Group({
                             x: start,
                             y: $scope.lineHeight
                         });
-                        $scope.drawNode(start, end, group, nodeGroup.node);
-                        if (nodeGroup.successor) {
-                            $scope.drawAll(nodeGroup.successor, ratio, leftTime);
-                        }
-                        if (nodeGroup.children) {
-                            for (var childGroup in nodeGroup.children) {
-                                $scope.drawAll(childGroup, ratio, leftTime);
-                            }
+                        $scope.drawNode(start, end, group, subtree.node);
+                    }
+                    if (subtree.successor) {
+                        $scope.drawSubtree(subtree.successor);
+                    }
+                    if (subtree.children) {
+                        for (var child in subtree.children) {
+                            $scope.drawSubtree(subtree.children[child]);
                         }
                     }
                 };
@@ -113,7 +117,6 @@ angular.module('history.directives', [])
                 });
                 layer.add(line);
                 $scope.stage.add(layer);
-                $scope.drawAll();
             },
             controller: Tree
         };
