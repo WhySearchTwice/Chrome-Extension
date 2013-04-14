@@ -232,28 +232,31 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
 
 function onTabFocused(activeInfo, focusStart) {
     console.log('Updating current tab focus data...');
-    if (session.windows[activeInfo.windowId] &&
-        session.windows[activeInfo.windowId].tabs[activeInfo.tabId]
-    ) {
-        // focus current page
-        var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
-        if (!currentTab.focusHistory) {
-            currentTab.focusHistory = [];
+    chrome.tabs.get(activeInfo.tabId, function(tab) {
+        console.log(tab.url);
+        if (session.windows[activeInfo.windowId] &&
+            session.windows[activeInfo.windowId].tabs[activeInfo.tabId]
+        ) {
+            // focus current page
+            var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
+            if (!currentTab.focusHistory) {
+                currentTab.focusHistory = [];
+            }
+            currentTab.focusHistory.push(focusStart);
+
+            session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
+
+            console.log('Updated focus data:');
+            console.log(currentTab);
+        } else {
+            setTimeout((function(activeInfo, focusStart) {
+                return function() {
+                    onTabFocused(activeInfo, focusStart);
+                };
+            })(activeInfo, focusStart), 500);
         }
-        currentTab.focusHistory.push(focusStart);
-
-        session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
-
-        console.log('Updated focus data:');
-        console.log(currentTab);
-    } else {
-        setTimeout((function(activeInfo, focusStart) {
-            return function() {
-                onTabFocused(activeInfo, focusStart);
-            };
-        })(activeInfo, focusStart), 500);
-    }
-    endLogEvent();
+        endLogEvent();
+    });
 }
 
 /**
