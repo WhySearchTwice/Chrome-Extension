@@ -68,8 +68,15 @@ var requestQueue = {
                 addToSession(windows[i].tabs[j]);
             }
         }
+        cleanDatastore();
     });
 })();
+
+/**
+ * Listen for history button click, open history
+ * @author  ansel
+ */
+chrome.browserAction.onClicked.addListener(openHistory);
 
 /**
  * Listen for short-lived connections
@@ -116,8 +123,7 @@ chrome.extension.onConnect.addListener(function(port) {
             switch (request.action) {
 
             case 'openHistory':
-                console.log('Opening history...');
-                chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
+                openHistory();
                 break;
 
             default:
@@ -204,7 +210,8 @@ chrome.webNavigation.onCommitted.addListener(function(details) {
  * @author ansel
  */
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    console.log('Tab focused, updating focus data...');
+    console.log('Tab focused.');
+    console.log('Updating previous tab focus data...');
     var focusStart = (new Date()).getTime();
     // check if previous tab is in session
     if (!session.windows[activeInfo.windowId] ||
@@ -220,19 +227,37 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
         }
         previousTab.focusHistory.push(focusStart);
     }
-    // focus current page
-    var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
-    if (!currentTab.focusHistory) {
-        currentTab.focusHistory = [];
-    }
-    currentTab.focusHistory.push(focusStart);
-
-    session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
-
-    console.log('Updated focus data:');
-    console.log(currentTab);
-    endLogEvent();
+    onTabFocused(activeInfo, focusStart);
 });
+
+function onTabFocused(activeInfo, focusStart) {
+    console.log('Updating current tab focus data...');
+    chrome.tabs.get(activeInfo.tabId, function(tab) {
+        console.log(tab.url);
+        if (session.windows[activeInfo.windowId] &&
+            session.windows[activeInfo.windowId].tabs[activeInfo.tabId]
+        ) {
+            // focus current page
+            var currentTab = session.windows[activeInfo.windowId].tabs[activeInfo.tabId];
+            if (!currentTab.focusHistory) {
+                currentTab.focusHistory = [];
+            }
+            currentTab.focusHistory.push(focusStart);
+
+            session.windows[activeInfo.windowId].focusedTab = currentTab.tabId;
+
+            console.log('Updated focus data:');
+            console.log(currentTab);
+        } else {
+            setTimeout((function(activeInfo, focusStart) {
+                return function() {
+                    onTabFocused(activeInfo, focusStart);
+                };
+            })(activeInfo, focusStart), 500);
+        }
+        endLogEvent();
+    });
+}
 
 /**
  * Event Listener - Tab moved to new Window
@@ -447,10 +472,13 @@ function sendPage(windowId, tabId) {
                     requestQueue.queue.splice(0, 1);
                     requestQueue.flush();
                 }
-		/*Added by Matt*/
-		cacheSendPage(page, response.id);
+                cacheSendPage(page, response.id);
 
-                session.windows[page.windowId].tabs[page.tabId].id = response.id;
+                if (session.windows[page.windowId] &&
+                    session.windows[page.windowId].tabs[page.tabId]
+                ) {
+                    session.windows[page.windowId].tabs[page.tabId].id = response.id;
+                }
             });
         };
     })(page)();
@@ -483,9 +511,7 @@ function updatePage(windowId, tabId) {
     (function(page) {
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/vertices/' + page.id + '/parsley/pageView', page);
-
-	    /*Added by Matt*/
-	    cacheUpdatePage(page);
+            cacheUpdatePage(page);
         };
     })(pageUpdate)();
 }
@@ -529,6 +555,7 @@ function ajax(method, url, data, callback) {
             method = requestQueue.queue[0].method;
             url = requestQueue.queue[0].url;
             data = requestQueue.queue[0].data;
+            data.userEmail = localStorage.userEmail;
             callback = requestQueue.queue[0].callback;
         } else {
             console.log('Queuing request:');
@@ -541,9 +568,7 @@ function ajax(method, url, data, callback) {
             console.log(request);
             requestQueue.queue.push(request);
             endLogEvent();
-            if (requestQueue.queue.length > 1) {
-                return;
-            }
+            return;
         }
     } else {
         if (requestQueue.queue.length > 0 && !requestQueue.isDequeuing) {
@@ -586,6 +611,15 @@ function ajax(method, url, data, callback) {
 }
 
 /**
+ * Opens the history page
+ * @author ansel
+ */
+function openHistory() {
+    console.log('Opening history...');
+    chrome.tabs.create({url:chrome.extension.getURL('html/history.html')});
+}
+
+/**
  * Check Chrome Sync for conflicting environmental variables
  * @author ansel
  */
@@ -593,12 +627,50 @@ function validateEnvironment() {
     console.log('Validating local IDs with Chrome Sync... ');
     chrome.storage.sync.get('userGuid', function(response) {
         if (!response.userGuid) {
-            requestQueue.ping();
+            console.log('Failed. Trying to fetch userGuid via oauth...');
+            var oauth = ChromeExOAuth.initBackgroundPage({
+                'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
+                'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+                'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
+                'consumer_key'   : 'anonymous', // TODO: Register app with Google
+                'consumer_secret': 'anonymous', // TODO: Register app with Google
+                'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
+                'app_name'       : 'Capstone'
+            });
+
+            console.log('Authorizing with Google...');
+            oauth.authorize(function() {
+                console.log('Authorized. Fetching email...');
+                var url = 'https://www.googleapis.com/userinfo/email';
+                var request = {
+                    'method': 'GET',
+                    'parameters': {'alt': 'json'}
+                };
+                oauth.sendSignedRequest(url, function(response) {
+                    localStorage.userEmail = JSON.parse(response).data.email;
+                    console.log('Email saved.');
+                    requestQueue.ping();
+                }, request);
+            });
             return;
         } else if (response.userGuid !== userGuid) {
             userGuid = localStorage.userGuid = response.userGuid;
         }
         requestQueue.isActive = false;
+    });
+}
+
+/**
+ * Sends session snapshot to server to close open tabs that do not exist anymore
+ * @author ansel
+ */
+function cleanDatastore() {
+    chrome.tabs.query({}, function(tabs) {
+        var snapshot = {};
+        for (var i = 0, l = tabs.length; i < l; i++) {
+            snapshot[tabs[i].id] = tabs[i].url;
+        }
+        post(SERVER + '/graphs/WhySearchTwice/vertices/' + deviceGuid + '/parsley/cleanup/closeTabs', snapshot);
     });
 }
 

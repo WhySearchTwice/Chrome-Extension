@@ -15,11 +15,15 @@ angular.module('history.directives', [])
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
 
-                $scope.$watch('tree.indexed', function() {
-                    $scope.drawAll(); // ToDo: Change to update an update function
+                $scope.$watch('tree.built', function() {
+                    $scope.pixelRatio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // pixelRatio = effective canvas / range in ms
+                    $scope.leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);                  // leftTime = now - range in ms
+                    for (var subtree in $scope.tree.built.root) {
+                        $scope.drawSubtree($scope.tree.built.root[subtree]);
+                    }
                     $scope.stage.setSize({
                         width: $scope.viewportWidth,
-                        height: $scope.lineHeight * $scope.tree.indexed.length
+                        height: $scope.lineHeight * 35
                     });
                 }, true);
 
@@ -38,17 +42,30 @@ angular.module('history.directives', [])
                 });
 
                 /**
-                 * Draw all nodes in $scope.tree.indexed
+                 * Recursively draw all nodes in a subtree tree
                  * @author chris, ansel
+                 *
+                 * @param {Object} subtree subtree to be subtree
                  */
-                $scope.drawAll = function() {
-                    for (var i = 0; i < $scope.tree.indexed.length; i++) {
-                        // px to ms ratio
-                        var ratio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // ratio = effective canvas / range in ms
-                        var leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);             // leftTime = now - range in ms
-                        var start = ratio * ($scope.pageViews[i].pageOpenTime - leftTime);
-                        var end = $scope.pageViews[i].pageCloseTime ? ratio * ($scope.pageViews[i].pageCloseTime - leftTime) : window.innerWidth - $scope.offset;
-                        $scope.drawNode(start, end, i * $scope.lineHeight, $scope.pageViews[i]);
+                $scope.drawSubtree = function(subtree) {
+                    console.log('Drawing:');
+                    console.log(subtree);
+                    if (subtree.node) {
+                        var start = $scope.pixelRatio * (subtree.node.pageOpenTime - $scope.leftTime);
+                        var end = subtree.node.pageCloseTime ? start : window.innerWidth - $scope.offset;
+                        var group = new Kinetic.Group({
+                            x: start,
+                            y: $scope.lineHeight
+                        });
+                        $scope.drawNode(start, end, group, subtree.node);
+                    }
+                    if (subtree.successor) {
+                        $scope.drawSubtree(subtree.successor);
+                    }
+                    if (subtree.children) {
+                        for (var child in subtree.children) {
+                            $scope.drawSubtree(subtree.children[child]);
+                        }
                     }
                 };
 
@@ -58,15 +75,11 @@ angular.module('history.directives', [])
                  *
                  * @param  {Int} start    pageOpenTime on x axis
                  * @param  {Int} end      pageCloseTime on x axis
-                 * @param  {Int} y        top position in stack
-                 * @param  {Int} pageView pageView Object
+                 * @param  group          group for node
+                 * @param  node           Information about page view
                  */
-                $scope.drawNode = function(start, end, y, pageView) {
+                $scope.drawNode = function(start, end, group, node) {
                     var layer = new Kinetic.Layer();
-                    var group = new Kinetic.Group({
-                        x: start,
-                        y: y
-                    });
 
                     var line = new Kinetic.Line({
                         points: [0, 15, end - start, 15],
@@ -74,7 +87,7 @@ angular.module('history.directives', [])
                         strokeWidth: 4
                     });
 
-                    var url = pageView.pageUrl || 'Missing URL';
+                    var url = node.pageUrl || 'Missing URL';
                     // truncate URLs loner than 50 chars
                     if (url.length > 50) {
                         url = url.substr(0, 50) + '...';
@@ -104,7 +117,6 @@ angular.module('history.directives', [])
                 });
                 layer.add(line);
                 $scope.stage.add(layer);
-                $scope.drawAll();
             },
             controller: Tree
         };

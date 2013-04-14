@@ -63,6 +63,8 @@
 
     "predef"        : [         // Extra globals.
         "angular",
+        "cacheSendPage",
+        "cacheUpdatePage",
         "console",
         "chrome",
         "ChromeExOAuth",
