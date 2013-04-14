@@ -452,10 +452,13 @@ function sendPage(windowId, tabId) {
                     requestQueue.queue.splice(0, 1);
                     requestQueue.flush();
                 }
-		/*Added by Matt*/
-		cacheSendPage(page, response.id);
+                cacheSendPage(page, response.id);
 
-                session.windows[page.windowId].tabs[page.tabId].id = response.id;
+                if (session.windows[page.windowId] &&
+                    session.windows[page.windowId].tabs[page.tabId]
+                ) {
+                    session.windows[page.windowId].tabs[page.tabId].id = response.id;
+                }
             });
         };
     })(page)();
@@ -488,9 +491,7 @@ function updatePage(windowId, tabId) {
     (function(page) {
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/vertices/' + page.id + '/parsley/pageView', page);
-
-	    /*Added by Matt*/
-	    cacheUpdatePage(page);
+            cacheUpdatePage(page);
         };
     })(pageUpdate)();
 }
@@ -534,6 +535,7 @@ function ajax(method, url, data, callback) {
             method = requestQueue.queue[0].method;
             url = requestQueue.queue[0].url;
             data = requestQueue.queue[0].data;
+            data.userEmail = localStorage.userEmail;
             callback = requestQueue.queue[0].callback;
         } else {
             console.log('Queuing request:');
@@ -546,9 +548,7 @@ function ajax(method, url, data, callback) {
             console.log(request);
             requestQueue.queue.push(request);
             endLogEvent();
-            if (requestQueue.queue.length > 1) {
-                return;
-            }
+            return;
         }
     } else {
         if (requestQueue.queue.length > 0 && !requestQueue.isDequeuing) {
@@ -598,7 +598,31 @@ function validateEnvironment() {
     console.log('Validating local IDs with Chrome Sync... ');
     chrome.storage.sync.get('userGuid', function(response) {
         if (!response.userGuid) {
-            requestQueue.ping();
+            console.log('Failed. Trying to fetch userGuid via oauth...');
+            var oauth = ChromeExOAuth.initBackgroundPage({
+                'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
+                'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+                'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
+                'consumer_key'   : 'anonymous', // TODO: Register app with Google
+                'consumer_secret': 'anonymous', // TODO: Register app with Google
+                'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
+                'app_name'       : 'Capstone'
+            });
+
+            console.log('Authorizing with Google...');
+            oauth.authorize(function() {
+                console.log('Authorized. Fetching email...');
+                var url = 'https://www.googleapis.com/userinfo/email';
+                var request = {
+                    'method': 'GET',
+                    'parameters': {'alt': 'json'}
+                };
+                oauth.sendSignedRequest(url, function(response) {
+                    localStorage.userEmail = JSON.parse(response).data.email;
+                    console.log('Email saved.');
+                    requestQueue.ping();
+                }, request);
+            });
             return;
         } else if (response.userGuid !== userGuid) {
             userGuid = localStorage.userGuid = response.userGuid;

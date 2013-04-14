@@ -11,8 +11,10 @@
     },
     "background": {
         "scripts": [
+            "js/libs/oauth-simple.js",
+            "js/libs/oauth.js",
             "js/background.js",
-	    "js/cache.js"
+	        "js/cache.js"
         ]
     },
     "chrome_url_overrides" : {
