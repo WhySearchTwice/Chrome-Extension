@@ -18,6 +18,7 @@ var db = openDatabase(dbName,
                       dbDescription,
                       dbSize);
 
+//the 'fuzzy' max views the database allows
 var maxRows = 10;
 
 function con(string) {
@@ -25,8 +26,9 @@ function con(string) {
 }
 
 function initializeDatabase() {
-    //dropDatabase();
     //con('initializingDatabase');
+
+    //NOTE: WEBSQL SUCKS AND DOESN'T ENFORCE FOREIGN KEYS
     var views = 'CREATE TABLE IF NOT EXISTS views (' +
                      'id INT NOT NULL, ' +
                      'url TEXT NOT NULL, ' +
@@ -39,11 +41,18 @@ function initializeDatabase() {
     var focus = 'CREATE TABLE IF NOT EXISTS focus (' +
                      'viewId INT NOT NULL, ' +
                      'time TIMESTAMP NOT NULL, ' +
-                     'FOREIGN KEY (viewId) REFERENCES pages (id)' +
+                     'FOREIGN KEY (viewId) REFERENCES pages (id) ' +
+                     'ON DELETE CASCADE' +
                 ')';
     db.transaction(function (tx) {
-        tx.executeSql(views, null, undefined, errorHandle);
-        tx.executeSql(focus, null, undefined, errorHandle);
+        tx.executeSql(views,
+                      [],
+                      undefined,
+                      errorHandle);
+        tx.executeSql(focus,
+                      [],
+                      undefined,
+                      errorHandle);
     });
 }
 
@@ -57,7 +66,7 @@ function validateSendPage(page, id) {
 
 function cacheSendPage(page, id) {
     con("cacheSendPage " + id);
-    console.log(page);
+
     if (typeof(page.parentId) == 'undefined') {
         con("setting parentId");
         page.parentId = -1;
@@ -71,21 +80,28 @@ function cacheSendPage(page, id) {
         tx.executeSql('SELECT * from views',
                       [],
                       function (tx, results) {
-                          console.log("results:");
-                          console.log(results.rows.length);
                           if (results.rows.length > maxRows) {
                               db.transaction(function (tx2) {
-                                  tx2.executeSql('DELETE FROM views ' +
-                                                 'WHERE insertTime = ' +
-                                                 '(SELECT min(insertTime) FROM views)',
+                                  tx2.executeSql('SELECT id FROM views ' +
+                                                 'WHERE insertTime = (SELECT min(insertTime) FROM views)',
                                                  [],
-                                                 undefined,
+                                                 function (tx3, results) {
+                                                     tx3.executeSql('DELETE FROM views ' +
+                                                                    'WHERE id = (?) ',
+                                                                    [results.rows.item(0).id],
+                                                                    undefined,
+                                                                    errorHandle);
+                                                     tx3.executeSql('DELETE FROM focus ' +
+                                                                    'WHERE viewId = (?) ',
+                                                                    [results.rows.item(0).id],
+                                                                    undefined,
+                                                                    errorHandle);
+                                                 },
                                                  errorHandle);
                               });
                           }
-                          db.transaction(function (tx3) {
-                              
-                              tx3.executeSql('INSERT INTO views (id, url, parentId, ' +
+                          db.transaction(function (tx4) {                              
+                              tx4.executeSql('INSERT INTO views (id, url, parentId, ' +
                                              'openTime, closeTime, insertTime) ' +
                                              'VALUES (?, ?, ?, ?, ?, ?)',
                                              [id,
@@ -108,24 +124,34 @@ function validateUpdatePage(page) {
            typeof(page.pageCloseTime) != 'undefined';
 }
 
-//TODO: Update Robustness
 function cacheUpdatePage(page) {
     con("cacheUpdatePage");
-    console.log(page);
     
     if (validateUpdatePage(page)) {
         db.transaction(function (tx) {
             tx.executeSql('UPDATE views ' +
                           'SET closeTime=\'' + page.pageCloseTime + '\' ' +
-                          'WHERE id=\'' + page.id + '\' ', [], undefined, errorHandle);
-            if (typeof(page.focusHistory) != 'undefined') {
-                for (var i = 0; i < page.focusHistory.length; i++) {
-                    tx.executeSql('INSERT INTO focus (viewId, time) ' +
-                                  'VALUES (?, ?)',
-                                  [page.id, page.focusHistory[i]],
-                                  undefined, errorHandle);
-                }
-            }
+                          'WHERE id=\'' + page.id + '\' ',
+                          [],
+                          function (tx2, results) {
+                              
+                          },
+                          errorHandle);
+            tx.executeSql('SELECT * FROM views ' +
+                          'WHERE id = (?)',
+                          [page.id],
+                          function (tx2, results) {
+                              if (results.rows.length == 1 && typeof(page.focusHistory) != 'undefined') {
+                                  for (var i = 0; i < page.focusHistory.length; i++) {
+                                      tx.executeSql('INSERT INTO focus (viewId, time) ' +
+                                                    'VALUES (?, ?)',
+                                                    [page.id, page.focusHistory[i]],
+                                                    undefined,
+                                                    errorHandle);
+                                  }
+                              }
+                          },
+                          errorHandle);
         });
     } else {
         con("invalid page in cacheUpdatePage");
@@ -142,35 +168,59 @@ function errorHandle(tx, error) {
 function dropDatabase() {
     //con('dropDatabase');
     db.transaction(function (tx) {
-        tx.executeSql('DROP TABLE views', null, undefined, errorHandle);
-        tx.executeSql('DROP TABLE focus', null, undefined, errorHandle);
+        tx.executeSql('DROP TABLE views',
+                      [],
+                      undefined,
+                      errorHandle);
+        tx.executeSql('DROP TABLE focus',
+                      [],
+                      undefined,
+                      errorHandle);
     });
 }
 
 //to be removed
 function dumpDatabase() {
     db.transaction(function (tx) {
-        tx.executeSql('SELECT * FROM views', null, function (tx, results) {
-            var len = results.rows.length, i;
-            console.log("LEN = " + len);
-            for (i = 0; i < len; i++) {
-                con(results.rows.item(i).id + ", " +
-                    results.rows.item(i).url + ", " +
-                    results.rows.item(i).parentId + ", " +
-                    results.rows.item(i).openTime + ", " +
-                    results.rows.item(i).closeTime + ", " +
-                    results.rows.item(i).insertTime);
-            }
-        }, errorHandle);
+        tx.executeSql('SELECT * FROM views',
+                      [],
+                      function (tx, results) {
+                          var len = results.rows.length, i;
+                          console.log("LEN = " + len);
+                          for (i = 0; i < len; i++) {
+                              con("view: " + results.rows.item(i).id + ", " +
+                                  results.rows.item(i).url + ", " +
+                                  results.rows.item(i).parentId + ", " +
+                                  results.rows.item(i).openTime + ", " +
+                                  results.rows.item(i).closeTime + ", " +
+                                  results.rows.item(i).insertTime);
+                          }
+                      },
+                      errorHandle);
+    });
+
+    db.transaction(function (tx) {
+        tx.executeSql('SELECT * FROM focus',
+                      [],
+                      function (tx, results) {
+                          for (var i = 0; i < results.rows.length; i++) {
+                              con("focus: " + results.rows.item(i).viewId + ", " +
+                                  results.rows.item(i).time);
+                          }
+                      },
+                      errorHandle);
     });
 }
 
 //to be removed
 function databaseRowCount() {
     db.transaction(function (tx) {
-        tx.executeSql('SELECT * FROM views', null, function (tx, results) {
-            return results.rows.length;
-        }, errorHandle);
+        tx.executeSql('SELECT * FROM views',
+                      [],
+                      function (tx, results) {
+                          return results.rows.length;
+                      },
+                      errorHandle);
     });
 }
 
@@ -181,7 +231,6 @@ function singleTest(id, url, parent) {
     page.id = id;
     cacheUpdatePage(page);
 }
-
 
 //to be removed
 function basicTest(id) {
