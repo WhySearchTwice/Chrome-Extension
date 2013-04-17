@@ -61,7 +61,7 @@ angular.module('history.directives', [])
                     var group = new Kinetic.Group();
                     if (subtree.node) {
                         var start = $scope.pixelRatio * (subtree.node.pageOpenTime - $scope.leftTime);
-                        var end = subtree.node.pageCloseTime ? start : window.innerWidth - $scope.offset;
+                        var end = subtree.node.pageCloseTime ? $scope.pixelRatio * (subtree.node.pageCloseTime - $scope.leftTime): window.innerWidth - $scope.offset;
                         group.add($scope.createNode(start, end, subtree.node));
                     }
                     if (subtree.successor) {
@@ -96,7 +96,7 @@ angular.module('history.directives', [])
                     var y = $scope.lineHeight;
 
                     var line = new Kinetic.Line({
-                        points: [0, y + 15, end - start, y + 15],
+                        points: [0, y, end - start, y],
                         stroke: end === window.innerWidth - $scope.offset ? 'blue' : 'black', // blue == still open
                         strokeWidth: 4
                     });
@@ -112,7 +112,6 @@ angular.module('history.directives', [])
                         fontSize: 13,
                         fontFamily: 'Arial',
                         fill: '#aaa',
-                        width: 800,
                         x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
                     });
 
