@@ -56,7 +56,7 @@ angular.module('history.directives', [])
                  * @return {KineticGroup}         Kinetic group of groups to draw
                  */
                 $scope.createSubtree = function(subtree) {
-                    console.log('Drawing:');
+                    console.log('Drawing:' + (subtree.node ? subtree.node.pageUrl : ''));
                     console.log(subtree);
                     var group = new Kinetic.Group();
                     if (subtree.node) {
@@ -85,19 +85,17 @@ angular.module('history.directives', [])
                  *
                  * @param  {Int} start    pageOpenTime on x axis
                  * @param  {Int} end      pageCloseTime on x axis
-                 * @param  group          group for node
                  * @param  node           Information about page view
                  */
                 $scope.createNode = function(start, end, node) {
                     var group = new Kinetic.Group({
                         x: start,
-                        y: $scope.lineHeight
+                        y: 0
                     });
-                    var y = $scope.lineHeight;
 
                     var line = new Kinetic.Line({
-                        points: [0, y, end - start, y],
-                        stroke: end === window.innerWidth - $scope.offset ? 'blue' : 'black', // blue == still open
+                        points: [0, 15, end - start, 15],
+                        stroke: !node.parentId && !node.predecessorId ? 'green': end === window.innerWidth - $scope.offset ? 'blue' : 'black', // blue == still open, green == root
                         strokeWidth: 4
                     });
 

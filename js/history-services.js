@@ -51,7 +51,7 @@ angular.module('history.services', [], function($provide) {
                         .then(function(response) {
                             var results = response.data.results;
                             console.log('Search response:');
-                            console.log(results);
+                            console.log(results.slice(0));
                             if (typeof params === 'function') { params(results); }
                             if (typeof callback === 'function') { callback(results); }
                         })
