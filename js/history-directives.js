@@ -115,17 +115,26 @@ angular.module('history.directives', [])
                     });
 
                     pageView.on('mouseover', function(e) {
-                        var rect = new Kinetic.Rect({
+                        var group = new Kinetic.Group({
                             x: e.pageX,
-                            y: e.pageY,
-                            width: 100,
-                            height: 50,
+                            y: e.pageY - 35
+                        });
+                        var rect = new Kinetic.Rect({
+                            x: 0,
+                            y: 0,
+                            width: 200,
+                            height: 100,
                             fill: 'green',
                             stroke: 'black',
                             strokeWidth: 4
                         });
 
-                        $scope.popupLayer.add(rect);
+
+
+                        group.add(rect);
+
+                        $scope.popupLayer.add(group);
+                        $scope.popupLayer.moveToTop();
                         $scope.stage.draw();
                     });
 
