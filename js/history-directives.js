@@ -118,10 +118,10 @@ angular.module('history.directives', [])
                         $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]).pageUrl !== node.pageUrl
                     ) {
                         var url = node.pageUrl || 'Missing URL';
-                        // truncate URLs loner than 50 chars
-                        if (url.length > 50) {
-                            url = url.substr(0, 50) + '...';
-                        }
+
+                        // truncate URLs longer than node line.
+                        url = url.substring(0, (end - start)/7);
+
                         var label = new Kinetic.Text({
                             text: url,
                             fontSize: 13,
