@@ -14,6 +14,8 @@ angular.module('history.directives', [])
                     width: window.innerWidth,
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
+                $scope.popupLayer = new Kinetic.Layer();
+                $scope.stage.add($scope.popupLayer);
 
                 $scope.$watch('tree.built', function() {
                     $scope.pixelRatio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // pixelRatio = effective canvas / range in ms
@@ -111,6 +113,27 @@ angular.module('history.directives', [])
                         stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
                     });
+
+                    pageView.on('mouseover', function(e) {
+                        var rect = new Kinetic.Rect({
+                            x: e.pageX,
+                            y: e.pageY,
+                            width: 100,
+                            height: 50,
+                            fill: 'green',
+                            stroke: 'black',
+                            strokeWidth: 4
+                        });
+
+                        $scope.popupLayer.add(rect);
+                        $scope.stage.draw();
+                    });
+
+                    pageView.on('mouseout', function() {
+                        $scope.popupLayer.children = [];
+                        $scope.stage.draw();
+                    });
+
                     group.add(pageView);
 
                     if (!node.predecessorId ||
