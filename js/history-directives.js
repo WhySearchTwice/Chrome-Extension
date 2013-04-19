@@ -111,23 +111,27 @@ angular.module('history.directives', [])
                         stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
                     });
+                    group.add(pageView);
 
-                    var url = node.pageUrl || 'Missing URL';
-                    // truncate URLs loner than 50 chars
-                    if (url.length > 50) {
-                        url = url.substr(0, 50) + '...';
+                    if (!node.predecessorId ||
+                        !$scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) ||
+                        $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]).pageUrl !== node.pageUrl
+                    ) {
+                        var url = node.pageUrl || 'Missing URL';
+                        // truncate URLs loner than 50 chars
+                        if (url.length > 50) {
+                            url = url.substr(0, 50) + '...';
+                        }
+                        var label = new Kinetic.Text({
+                            text: url,
+                            fontSize: 13,
+                            fontFamily: 'Arial',
+                            fill: end === window.innerWidth - $scope.offset ? '#000' : '#aaa', // black == still open
+                            x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
+                        });
+                        group.add(label);
                     }
 
-                    var label = new Kinetic.Text({
-                        text: url,
-                        fontSize: 13,
-                        fontFamily: 'Arial',
-                        fill: end === window.innerWidth - $scope.offset ? '#000' : '#aaa', // black == still open
-                        x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
-                    });
-
-                    group.add(pageView);
-                    group.add(label);
                     group.on('click', $scope.toggleHidden);
                     return group;
                 };

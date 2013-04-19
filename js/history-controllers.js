@@ -71,6 +71,7 @@ function Tree($scope, rexster) {
          * @return {Object}     pageView
          */
         getPageView: function(key) {
+            if (!key) { return undefined; }
             var key = key.split('-');
             return $scope.tree.indexed.devices[key[0]].windows[key[1]].tabs[key[2]].pages[key[3]];
         },
