@@ -20,11 +20,12 @@ angular.module('history.directives', [])
                     $scope.leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);                  // leftTime = now - range in ms
                     var layer = new Kinetic.Layer();
                     var y = $scope.lineHeight;
-                    for (var subtree in $scope.tree.built.root) {
-                        var group = $scope.createSubtree($scope.tree.built.root[subtree]);
+                    var roots = Object.keys($scope.tree.built.root).sort();
+                    for (var i = 0, l = roots.length; i < l; i++) {
+                        var group = $scope.createSubtree($scope.tree.built.root[roots[i]]);
                         group.setY(y);
                         layer.add(group);
-                        y += $scope.lineHeight * 2;
+                        y += group.getHeight() + $scope.lineHeight * 3; // 3: extra margin between windows
                     }
                     console.log(layer);
                     $scope.stage.setSize({
@@ -56,23 +57,34 @@ angular.module('history.directives', [])
                  * @return {KineticGroup}         Kinetic group of groups to draw
                  */
                 $scope.createSubtree = function(subtree) {
-                    console.log('Drawing:' + (subtree.node ? subtree.node.pageUrl : ''));
-                    console.log(subtree);
                     var group = new Kinetic.Group();
                     if (subtree.node) {
                         var start = $scope.pixelRatio * (subtree.node.pageOpenTime - $scope.leftTime);
                         var end = subtree.node.pageCloseTime ? $scope.pixelRatio * (subtree.node.pageCloseTime - $scope.leftTime): window.innerWidth - $scope.offset;
-                        group.add($scope.createNode(start, end, subtree.node));
+                        var nodegroup = $scope.createNode(start, end, subtree.node);
+                        group.setHeight(group.getHeight() + nodegroup.getHeight());
+                        group.add(nodegroup);
                     }
                     if (subtree.successor) {
                         group.add($scope.createSubtree(subtree.successor));
                     }
                     if (subtree.children || !subtree.node) {
-                        var y = $scope.lineHeight * 2;
-                        for (var child in subtree.children || subtree) {
-                            var subgroup = $scope.createSubtree((subtree.children || subtree)[child]);
+                        var y = $scope.lineHeight;
+                        var children = Object.keys(subtree.children || subtree).sort();
+                        for (var i = 0, l = children.length; i < l; i++) {
+                            var subgroup = $scope.createSubtree((subtree.children || subtree)[children[i]]);
                             subgroup.setY(subtree.children ? y : 0);
                             group.add(subgroup);
+                            group.setHeight(group.getHeight() + subgroup.getHeight());
+                            if (subtree.children) {
+                                var path = new Kinetic.Line({
+                                    opacity: 0.2,
+                                    points: [subgroup.children[0].getX(), 17, subgroup.children[0].getX(), group.getHeight() - 3],
+                                    stroke: 'black',
+                                    strokeWidth: 1
+                                });
+                                group.add(path);
+                            }
                             y += $scope.lineHeight;
                         }
                     }
@@ -90,10 +102,11 @@ angular.module('history.directives', [])
                 $scope.createNode = function(start, end, node) {
                     var group = new Kinetic.Group({
                         x: start,
-                        y: 0
+                        y: 0,
+                        height: 20
                     });
 
-                    var line = new Kinetic.Line({
+                    var pageView = new Kinetic.Line({
                         points: [0, 15, end - start - 1, 15], // -1px for border between successors
                         stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
@@ -105,7 +118,7 @@ angular.module('history.directives', [])
                         url = url.substr(0, 50) + '...';
                     }
 
-                    var text = new Kinetic.Text({
+                    var label = new Kinetic.Text({
                         text: url,
                         fontSize: 13,
                         fontFamily: 'Arial',
@@ -113,9 +126,25 @@ angular.module('history.directives', [])
                         x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
                     });
 
-                    group.add(line);
-                    group.add(text);
+                    group.add(pageView);
+                    group.add(label);
+                    group.on('click', $scope.toggleHidden);
                     return group;
+                };
+
+                /**
+                 * Toggles the hidden state of a group
+                 * @author  ansel
+                 *
+                 * @param  {Object} event JS event
+                 */
+                $scope.toggleHidden = function(event) {
+                    var parent = event.shape.parent;
+                    while (parent.parent.parent.nodeType !== 'Stage') {
+                        parent = parent.parent;
+                    }
+                    parent.setOpacity(parent.getOpacity() === 0.2 ? 1 : 0.2);
+                    $scope.stage.draw();
                 };
 
                 // draw now line
