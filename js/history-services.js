@@ -50,8 +50,6 @@ angular.module('history.services', [], function($provide) {
                         .get(globals.SERVER + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'))
                         .then(function(response) {
                             var results = response.data.results;
-                            console.log('Search response:');
-                            console.log(results.slice(0));
                             if (typeof params === 'function') { params(results); }
                             if (typeof callback === 'function') { callback(results); }
                         })

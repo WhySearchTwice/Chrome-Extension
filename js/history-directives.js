@@ -24,7 +24,7 @@ angular.module('history.directives', [])
                         var group = $scope.createSubtree($scope.tree.built.root[subtree]);
                         group.setY(y);
                         layer.add(group);
-                        y += $scope.lineHeight;
+                        y += $scope.lineHeight * 2;
                     }
                     console.log(layer);
                     $scope.stage.setSize({
@@ -67,11 +67,11 @@ angular.module('history.directives', [])
                     if (subtree.successor) {
                         group.add($scope.createSubtree(subtree.successor));
                     }
-                    if (subtree.children) {
+                    if (subtree.children || !subtree.node) {
                         var y = $scope.lineHeight * 2;
-                        for (var child in subtree.children) {
-                            var subgroup = $scope.createSubtree(subtree.children[child]);
-                            subgroup.setY(y);
+                        for (var child in subtree.children || subtree) {
+                            var subgroup = $scope.createSubtree((subtree.children || subtree)[child]);
+                            subgroup.setY(subtree.children ? y : 0);
                             group.add(subgroup);
                             y += $scope.lineHeight;
                         }
@@ -94,8 +94,8 @@ angular.module('history.directives', [])
                     });
 
                     var line = new Kinetic.Line({
-                        points: [0, 15, end - start, 15],
-                        stroke: !node.parentId && !node.predecessorId ? 'green': end === window.innerWidth - $scope.offset ? 'blue' : 'black', // blue == still open, green == root
+                        points: [0, 15, end - start - 1, 15], // -1px for border between successors
+                        stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
                     });
 
@@ -109,7 +109,7 @@ angular.module('history.directives', [])
                         text: url,
                         fontSize: 13,
                         fontFamily: 'Arial',
-                        fill: '#aaa',
+                        fill: end === window.innerWidth - $scope.offset ? '#000' : '#aaa', // black == still open
                         x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
                     });
 

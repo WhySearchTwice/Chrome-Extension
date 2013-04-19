@@ -251,7 +251,7 @@ function onTabFocused(activeInfo, focusStart) {
         } else {
             setTimeout((function(activeInfo, focusStart) {
                 return function() {
-                    onTabFocused(activeInfo, focusStart);
+                    //onTabFocused(activeInfo, focusStart);
                 };
             })(activeInfo, focusStart), 500);
         }

@@ -98,6 +98,7 @@ function Tree($scope, rexster) {
 
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
+                if (!pageView.userGuid) { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
 
                 // get or create device
                 var device = $scope.tree.getDevice(pageView.deviceGuid);
@@ -172,7 +173,6 @@ function Tree($scope, rexster) {
             pageViews = $scope.tree.index(pageViews);
             console.log(pageViews.slice(0));
 
-
             // create build queue: { [vertexId]: [pageView], ... }
             var pageViewIds = {};
             for (var i = 0, l = pageViews.length; i < l; i++) {
@@ -181,7 +181,6 @@ function Tree($scope, rexster) {
 
             // process build queue
             var i = pageViews.length - 1;
-            var TEST = 0;
             while (pageViews.length) {
                 var pageView = pageViews[i];
 
@@ -193,24 +192,18 @@ function Tree($scope, rexster) {
                         $scope.tree.addNode(pageView, $scope.tree.getPageView($scope.tree.vertexIds[searchId]), pageView.parentId ? 'children' : 'successor');
                         // remove pageView from queue
                         pageViews.splice(i, 1);
-                        console.log(TEST);
-                        TEST++;
                         delete pageViewIds[pageView.id];
                     } else if (!pageViewIds[searchId]) {
                         // ancestory not in tree or queue. Add node as root
                         $scope.tree.addNode(pageView);
                         // remove pageView from queue
                         pageViews.splice(i, 1);
-                        console.log(TEST);
-                        TEST++;
                         delete pageViewIds[pageView.id];
                     }
                 } else {
                     // no ancestors, add as root
                     $scope.tree.addNode(pageView);
                     pageViews.splice(i, 1);
-                    console.log(TEST);
-                    TEST++;
                     delete pageViewIds[pageView.id];
                 }
 
