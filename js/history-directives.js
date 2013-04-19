@@ -107,7 +107,7 @@ angular.module('history.directives', [])
                     });
 
                     var pageView = new Kinetic.Line({
-                        points: [0, 15, end - start - 1, 15], // -1px for border between successors
+                        points: [0, 15, end - start - 2, 15], // -1px for border between successors
                         stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
                     });
@@ -125,9 +125,9 @@ angular.module('history.directives', [])
                         var label = new Kinetic.Text({
                             text: url,
                             fontSize: 13,
-                            fontFamily: 'Arial',
+                            fontFamily: '"Ubuntu Mono"',
                             fill: end === window.innerWidth - $scope.offset ? '#000' : '#aaa', // black == still open
-                            x: start < 0 ? -1 * start : 0 // prevent text from falling off left side of screen
+                            x: start < 2 ? -1 * start : 0 // prevent text from falling off left side of screen
                         });
                         group.add(label);
                     }

@@ -1,7 +1,28 @@
+@font-face {
+  font-family: 'Ubuntu Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Ubuntu Mono'), local('UbuntuMono-Regular'), url(/font/UbuntuMono-Regular.ttf) format('truetype');
+}
+
+@font-face {
+  font-family: 'Ubuntu Mono';
+  font-style: normal;
+  font-weight: 700;
+  src: local('Ubuntu Mono Bold'), local('UbuntuMono-Bold'), url(/font/UbuntuMono-Bold.ttf) format('truetype');
+}
+
 html,
 body {
     height: 100%;
 }
+
+#webfont-preloader {
+    font-family: 'Ubuntu Mono';
+    position: absolute;
+    left: -9001px;
+}
+
 #search {
     margin-right: 5px;
     margin-left: 40px;
