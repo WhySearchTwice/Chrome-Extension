@@ -353,7 +353,9 @@ function addToSession(tab) {
         pageOpenTime: (new Date()).getTime()
     };
 
-    if (tab.openerTabId) {
+    if (tab.openerTabId &&
+        tab.url !== 'chrome://newtab/'
+    ) {
         newPage.parentId = session.windows[tab.windowId].tabs[tab.openerTabId].id;
     }
 

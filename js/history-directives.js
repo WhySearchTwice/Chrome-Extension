@@ -14,28 +14,28 @@ angular.module('history.directives', [])
                     width: window.innerWidth,
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
-                $scope.popupLayer = new Kinetic.Layer();
-                $scope.stage.add($scope.popupLayer);
+                $scope.layers = {};
+                $scope.layers.popups = new Kinetic.Layer();
+                $scope.stage.add($scope.layers.popups);
 
                 $scope.$watch('tree.built', function() {
                     $scope.pixelRatio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // pixelRatio = effective canvas / range in ms
                     $scope.leftTime = (new Date()).getTime() - (1000 * 60 * $scope.range);                  // leftTime = now - range in ms
-                    var layer = new Kinetic.Layer();
+                    $scope.layers.tree = new Kinetic.Layer();
                     var y = $scope.lineHeight;
                     var roots = Object.keys($scope.tree.built.root).sort();
                     for (var i = 0, l = roots.length; i < l; i++) {
                         var group = $scope.createSubtree($scope.tree.built.root[roots[i]], 0);
                         group.setY(y);
-                        layer.add(group);
-                        console.log('ROOT: ' + group.getHeight());
+                        $scope.layers.tree.add(group);
                         y += group.getHeight() + $scope.lineHeight * 3; // 3: extra margin between windows
                     }
-                    console.log(layer);
+                    console.log($scope.layers.tree);
                     $scope.stage.setSize({
                         width: $scope.viewportWidth,
                         height: $scope.lineHeight * 35
                     });
-                    $scope.stage.add(layer);
+                    $scope.stage.add($scope.layers.tree);
                 }, true);
 
                 $scope.viewportWidth = $window.innerWidth;
@@ -62,7 +62,6 @@ angular.module('history.directives', [])
                  */
                 $scope.createSubtree = function(subtree, y) {
                     y = (y || 0) + $scope.lineHeight;
-                    console.log('Y: ' + y);
                     var group = new Kinetic.Group();
                     if (subtree.node) {
                         var start = $scope.pixelRatio * (subtree.node.pageOpenTime - $scope.leftTime);
@@ -112,7 +111,7 @@ angular.module('history.directives', [])
                     });
 
                     var pageView = new Kinetic.Line({
-                        points: [0, 15, end - start > 2 ? end - start - 2 : 2, 15], // -2px for border between successors
+                        points: [0, 15, end - start > 3 ? end - start - 2 : 2, 15], // -2px for border between successors
                         stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
                     });
@@ -129,20 +128,18 @@ angular.module('history.directives', [])
                             height: 100,
                             fill: 'green',
                             stroke: 'black',
-                            strokeWidth: 4
+                            strokeWidth: 2
                         });
-
-
 
                         group.add(rect);
 
-                        $scope.popupLayer.add(group);
-                        $scope.popupLayer.moveToTop();
+                        $scope.layers.popups.add(group);
+                        $scope.layers.popups.moveToTop();
                         $scope.stage.draw();
                     });
 
                     pageView.on('mouseout', function() {
-                        $scope.popupLayer.children = [];
+                        $scope.layers.popups.children = [];
                         $scope.stage.draw();
                     });
 
@@ -187,14 +184,13 @@ angular.module('history.directives', [])
                 };
 
                 // draw now line
-                var layer = new Kinetic.Layer();
-                var line = new Kinetic.Line({
+                $scope.layers.now = new Kinetic.Layer();
+                $scope.layers.now.add(new Kinetic.Line({
                     points: [window.innerWidth - $scope.offset, 0, window.innerWidth - $scope.offset, 10000],
                     stroke: 'red',
                     strokeWidth: 2
-                });
-                layer.add(line);
-                $scope.stage.add(layer);
+                }));
+                $scope.stage.add($scope.layers.now);
             },
             controller: Tree
         };
