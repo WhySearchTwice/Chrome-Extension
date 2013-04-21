@@ -51,7 +51,8 @@ var requestQueue = {
     isDequeuing: false,
     queue: [],
     flush: function() {
-        ajax('FLUSH');
+        //ajax('FLUSH');
+        requestQueue.queue = [];    // just purge queue until we can make sure that vertexIds are added correctly
     },
     ping: function() {
         ajax('PING');
@@ -457,21 +458,8 @@ function sendPage(windowId, tabId) {
     console.log('Sending page...');
     (function(page) {
         return function() {
-            post(SERVER + '/graphs/WhySearchTwice/parsley/pageView', page, function(response) {
-                response = JSON.parse(response.response);
-                if (response.userGuid || response.deviceGuid) {
-                    if (response.userGuid) {
-                        userGuid = localStorage.userGuid = response.userGuid;
-                        chrome.storage.sync.set({'userGuid': response.userGuid});
-                    }
-                    if (response.deviceGuid) {
-                        deviceGuid = localStorage.deviceGuid = response.deviceGuid;
-                    }
-                    // flush requests & remove fencepost
-                    requestQueue.isActive = false;
-                    requestQueue.queue.splice(0, 1);
-                    requestQueue.flush();
-                }
+            post(SERVER + '/graphs/WhySearchTwice/parsley/pageView', page, function(request) {
+                var response = JSON.parse(request.response);
                 cacheSendPage(page, response.id);
 
                 if (session.windows[page.windowId] &&
@@ -557,7 +545,7 @@ function ajax(method, url, data, callback) {
             data = requestQueue.queue[0].data;
             data.userEmail = localStorage.userEmail;
             callback = requestQueue.queue[0].callback;
-        } else {
+        } else if (!url.match('createDevice|renew')) {
             console.log('Queuing request:');
             var request = {
                 method: method,
@@ -579,7 +567,7 @@ function ajax(method, url, data, callback) {
                 // revalidate data
                 request.data = validatePage(request.data);
                 console.log(request);
-                if (request.data.pageUrl.indexOf('/graphs/WhySearchTwice/vertices/') > -1 && !request.data.id) {
+                if ((request.data.pageUrl.indexOf('/graphs/WhySearchTwice/vertices/') > -1 && !request.data.id))  {
                     console.log('Dirty data, skipping...');
                     requestQueue.queue.splice(0, 1);
                     endLogEvent();
@@ -593,6 +581,10 @@ function ajax(method, url, data, callback) {
         }
     }
     if (method === 'FLUSH') { return; }
+    if (url.match('undefined')) {
+        console.log('Dirty data, skipping...');
+        return;
+    }
     console.log('Sending: ');
     console.log(data || url);
     var request = new XMLHttpRequest();
@@ -605,6 +597,10 @@ function ajax(method, url, data, callback) {
             console.log(request);
             endLogEvent();
             if (typeof callback === 'function') { callback(request); }
+        }
+        if (request.readyState === 4 && request.status === 400) {
+            requestQueue.isActive = true;
+            renewGuids();
         }
     };
     request.send(JSON.stringify(data));
@@ -649,14 +645,49 @@ function validateEnvironment() {
                 oauth.sendSignedRequest(url, function(response) {
                     localStorage.userEmail = JSON.parse(response).data.email;
                     console.log('Email saved.');
-                    requestQueue.ping();
+                    renewGuids();
                 }, request);
             });
             return;
         } else if (response.userGuid !== userGuid) {
             userGuid = localStorage.userGuid = response.userGuid;
         }
+
+        if (deviceGuid) {
+            requestQueue.isActive = false;
+        } else {
+            renewGuids();
+        }
+    });
+}
+
+/**
+ * Calls the necessary renewal functions to get valid guids
+ * @author ansel
+ */
+function renewGuids() {
+    if (!localStorage.userEmail) { return; } // skip for now, will be called again once we have user email
+    var data = {};
+    var request = userGuid && deviceGuid ? '/user/renew' : '/user/createDevice' ;
+
+    if (userGuid) { data.userGuid = userGuid; }
+    else { data.emailAddress = localStorage.userEmail; }
+
+    if (deviceGuid) { data.deviceGuid = deviceGuid; }
+
+    post(SERVER + '/graphs/WhySearchTwice/parsley' + request, data, function(request) {
+        var response = JSON.parse(request.response);
+        if (response.userGuid) {
+            userGuid = localStorage.userGuid = response.userGuid;
+            chrome.storage.sync.set({ 'userGuid': response.userGuid });
+        }
+        if (response.deviceGuid) {
+            deviceGuid = localStorage.deviceGuid = response.deviceGuid;
+        }
+        // flush requests & remove fencepost
         requestQueue.isActive = false;
+        requestQueue.queue.splice(0, 1);
+        requestQueue.flush();
     });
 }
 
@@ -677,10 +708,23 @@ function cleanDatastore() {
 /**
  * Deletes localStorage and Chrome sync data
  * @author ansel
+ *
+ * @param {String} scope Optional scope of reset {local|sync|global|factory}
  */
-function reset() {
+function reset(scope) {
+    var overrides = localStorage.force;
     localStorage.clear();
-    chrome.storage.sync.clear();
+    localStorage.force = overrides;
+
+    if (scope === 'factory') {
+        if (localStorage.force) { delete localStorage.force; }
+    }
+
+    if (scope === 'global'||
+        scope === 'factory'
+    ) {
+        chrome.storage.sync.clear();
+    }
 }
 
 /**
