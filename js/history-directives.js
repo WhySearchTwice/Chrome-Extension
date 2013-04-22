@@ -111,29 +111,37 @@ angular.module('history.directives', [])
                     });
 
                     var pageView = new Kinetic.Line({
-                        points: [0, 15, end - start > 3 ? end - start - 2 : 2, 15], // -2px for border between successors
+                        points: [0, 15, end - start > 3 ? end === window.innerWidth - $scope.offset ? Math.floor(end - start) : Math.floor(end - start - 2) : 2, 15], // -2px for border between successors
                         stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
                         strokeWidth: 4
                     });
-
-                    pageView.on('mouseover', function(e) {
-                        var group = new Kinetic.Group({
-                            x: e.pageX,
-                            y: e.pageY - 35
+                    pageView.on('mouseover', function(event) {
+                        console.log(node);
+                        var infoBox = new Kinetic.Group({
+                            x: event.pageX,
+                            y: event.pageY - 1
                         });
-                        var rect = new Kinetic.Rect({
+
+                        infoBox.add(new Kinetic.Rect({
                             x: 0,
                             y: 0,
-                            width: 200,
-                            height: 100,
-                            fill: 'green',
+                            width: node.pageUrl.length * 7 + 20,
+                            height: 35,
+                            fill: '#f1f1f1',
                             stroke: 'black',
                             strokeWidth: 2
-                        });
+                        }));
 
-                        group.add(rect);
+                        infoBox.add(new Kinetic.Text({
+                            text: node.pageUrl,
+                            fontSize: 13,
+                            fontFamily: '"Ubuntu Mono"',
+                            fill: '#000',
+                            x: 10,
+                            y: 10
+                        }));
 
-                        $scope.layers.popups.add(group);
+                        $scope.layers.popups.add(infoBox);
                         $scope.layers.popups.moveToTop();
                         $scope.stage.draw();
                     });
@@ -143,16 +151,18 @@ angular.module('history.directives', [])
                         $scope.stage.draw();
                     });
 
+
                     group.add(pageView);
 
-                    if (!node.predecessorId ||
+                    if ((end > 0 && start < 0) ||
+                        !node.predecessorId ||
                         !$scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) ||
                         $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]).pageUrl !== node.pageUrl
                     ) {
-                        var url = node.pageUrl || 'Missing URL';
+                        var url = node.pageUrl.replace(/^(.*):\/\//, '') || 'Missing URL';
 
                         // truncate URLs longer than node line.
-                        url = url.substring(0, (end - start)/7);
+                        url = url.substring(0, (end - (start < 0 ? 2 : start)) / 7);
 
                         var label = new Kinetic.Text({
                             text: url,

@@ -4,7 +4,7 @@
  *
  * @type String
  */
-var SERVER = 'http://' + (chrome.app.getDetails().id === 'heflehdnackihajkcgimpkmffacccegh' || localStorage.forceProd ? 'prod' : 'dev') + '.whysearchtwice.com';
+var SERVER = localStorage.SERVER = 'http://' + (chrome.app.getDetails().id === 'heflehdnackihajkcgimpkmffacccegh' || localStorage.forceProd ? 'prod' : 'dev') + '.whysearchtwice.com';
 
 /**
  * Extension version number. Read from manifest at background page load.

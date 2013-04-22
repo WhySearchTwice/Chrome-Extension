@@ -38,23 +38,27 @@ angular.module('history.services', [], function($provide) {
              * @return {Object}            Angular Promise
              */
             search: function(targetTime, params, callback) {
-                background.get(['userGuid','SERVER'], function(globals) {
+                if (targetTime) {
                     var encoded = [];
                     params = params || {};
-                    params.userGuid = localStorage.userGuid || params.userGuid || globals.userGuid;
+                    params.userGuid = localStorage.userGuid || params.userGuid;
                     params.openTime = targetTime;
                     for (var key in params) {
                         encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
                     }
-                    return $http
-                        .get(globals.SERVER + '/graphs/WhySearchTwice/parsley/search?' + encoded.join('&'))
-                        .then(function(response) {
-                            var results = response.data.results;
-                            if (typeof params === 'function') { params(results); }
-                            if (typeof callback === 'function') { callback(results); }
-                        })
-                    ;
-                });
+                    var request = '/parsley/search?' + encoded.join('&');
+                } else {
+                    var request = '/vertices/' + localStorage.deviceGuid + '/parsley/cleanup/openTabs';
+                }
+
+                return $http
+                    .get(localStorage.SERVER + '/graphs/WhySearchTwice' + request)
+                    .then(function(response) {
+                        var results = response.data.results;
+                        if (typeof params === 'function') { params(results); }
+                        if (typeof callback === 'function') { callback(results); }
+                    })
+                ;
             }
         };
     }]);
