@@ -154,12 +154,16 @@ angular.module('history.directives', [])
 
                     group.add(pageView);
 
+                    var predecessor = node.predecessorId ? $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) : undefined;
                     if ((end > 0 && start < 0) ||
-                        !node.predecessorId ||
-                        !$scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) ||
-                        $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]).pageUrl !== node.pageUrl
+                        !predecessor ||
+                        predecessor.pageUrl !== node.pageUrl
                     ) {
                         var url = node.pageUrl.replace(/^(.*):\/\//, '') || 'Missing URL';
+
+                        if (predecessor && url.match(/^[^\/]*/)[0] === predecessor.pageUrl.replace(/^(.*):\/\//, '').match(/^[^\/]*/)[0]) {
+                            url = url.replace(/^[^\/]*/, '');
+                        }
 
                         // truncate URLs longer than node line.
                         url = url.substring(0, (end - (start < 0 ? 2 : start)) / 7);
