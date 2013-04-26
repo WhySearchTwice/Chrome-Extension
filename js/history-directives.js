@@ -117,15 +117,25 @@ angular.module('history.directives', [])
                     });
                     pageView.on('mouseover', function(event) {
                         console.log(node);
+                        var infoWidth = node.pageUrl.length * 7 + 20;
+
+                        // Prevents popups from going off the page.
+                        var edgeOffset = (event.pageX - window.innerWidth) + infoWidth;
+                        if (edgeOffset < 0) {
+                            edgeOffset = 0;
+                        } else {
+                            edgeOffset += 20;
+                        }
+
                         var infoBox = new Kinetic.Group({
-                            x: event.pageX,
+                            x: event.pageX - edgeOffset,
                             y: event.pageY - 1
                         });
 
                         infoBox.add(new Kinetic.Rect({
                             x: 0,
                             y: 0,
-                            width: node.pageUrl.length * 7 + 20,
+                            width: infoWidth,
                             height: 35,
                             fill: '#f1f1f1',
                             stroke: 'black',
