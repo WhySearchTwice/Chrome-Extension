@@ -49,6 +49,7 @@ var deviceGuid = localStorage.deviceGuid;
 var requestQueue = {
     isActive: true,
     isDequeuing: false,
+    isRenewing: false,
     queue: [],
     flush: function() {
         //ajax('FLUSH');
@@ -61,6 +62,22 @@ var requestQueue = {
 
 // create session
 (function() {
+    // make sure page doesn't queue forever
+    setTimeout(function() {
+        if (requestQueue.isActive) {
+            window.location.reload();
+            if (!localStorage.recoveryAttempts) {
+                localStorage.recoveryAttempts = 0;
+            } else if (localStorage.recoveryAttempts < 5) {
+                reset('factory');
+            } else {
+                localStorage.recoveryAttempts++;
+            }
+        } else {
+            delete localStorage.recoveryAttempts;
+        }
+    }, 60000);
+
     validateEnvironment();
     console.log('Updating session...');
     chrome.windows.getAll({populate: true}, function(windows) {
@@ -622,45 +639,41 @@ function openHistory() {
  * @author ansel
  */
 function validateEnvironment() {
-    console.log('Validating local IDs with Chrome Sync... ');
-    chrome.storage.sync.get('userGuid', function(response) {
-        if (!response.userGuid) {
-            console.log('Failed. Trying to fetch userGuid via oauth...');
-            var oauth = ChromeExOAuth.initBackgroundPage({
-                'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
-                'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
-                'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
-                'consumer_key'   : 'anonymous', // TODO: Register app with Google
-                'consumer_secret': 'anonymous', // TODO: Register app with Google
-                'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
-                'app_name'       : 'Capstone'
-            });
+    console.log('Validating local info with Chrome Sync... ');
+    if (!localStorage.userEmail) {
+        console.log('Failed. Trying to fetch user email via oauth...');
+        var oauth = ChromeExOAuth.initBackgroundPage({
+            'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
+            'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+            'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
+            'consumer_key'   : 'anonymous', // TODO: Register app with Google
+            'consumer_secret': 'anonymous', // TODO: Register app with Google
+            'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
+            'app_name'       : 'Capstone'
+        });
 
-            console.log('Authorizing with Google...');
-            oauth.authorize(function() {
-                console.log('Authorized. Fetching email...');
-                var url = 'https://www.googleapis.com/userinfo/email';
-                var request = {
-                    'method': 'GET',
-                    'parameters': {'alt': 'json'}
-                };
-                oauth.sendSignedRequest(url, function(response) {
-                    localStorage.userEmail = JSON.parse(response).data.email;
-                    console.log('Email saved.');
-                    renewGuids();
-                }, request);
-            });
-            return;
-        } else if (response.userGuid !== userGuid) {
-            userGuid = localStorage.userGuid = response.userGuid;
-        }
+        console.log('Authorizing with Google...');
+        oauth.authorize(function() {
+            console.log('Authorized. Fetching email...');
+            var url = 'https://www.googleapis.com/userinfo/email';
+            var request = {
+                'method': 'GET',
+                'parameters': {'alt': 'json'}
+            };
+            oauth.sendSignedRequest(url, function(response) {
+                localStorage.userEmail = JSON.parse(response).data.email;
+                console.log('Email saved.');
+                renewGuids();
+            }, request);
+        });
+        return;
+    }
 
-        if (deviceGuid) {
-            requestQueue.isActive = false;
-        } else {
-            renewGuids();
-        }
-    });
+    if (deviceGuid) {
+        requestQueue.isActive = false;
+    } else {
+        renewGuids();
+    }
 }
 
 /**
@@ -668,6 +681,8 @@ function validateEnvironment() {
  * @author ansel
  */
 function renewGuids() {
+    if (requestQueue.isRenewing) { return; }
+    requestQueue.isRenewing = true;
     if (!localStorage.userEmail) { return; } // skip for now, will be called again once we have user email
     var data = {};
     var request = userGuid && deviceGuid ? '/user/renew' : '/user/createDevice' ;
@@ -688,6 +703,7 @@ function renewGuids() {
         }
         // flush requests & remove fencepost
         requestQueue.isActive = false;
+        requestQueue.isRenewing = false;
         requestQueue.queue.splice(0, 1);
         requestQueue.flush();
     });
@@ -727,6 +743,7 @@ function reset(scope) {
     ) {
         chrome.storage.sync.clear();
     }
+    window.location.reload();
 }
 
 /**
