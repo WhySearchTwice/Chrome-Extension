@@ -116,6 +116,7 @@ angular.module('history.directives', [])
                         strokeWidth: 4
                     });
                     pageView.on('mouseover', function(event) {
+                        $timeout.cancel($scope.popupTimer);
                         var infoWidth = node.pageUrl.length * 7 + 20;
 
                         // Prevents popups from going off the page.
@@ -139,12 +140,20 @@ angular.module('history.directives', [])
                             $scope.popupTimer = $timeout(function() {
                                 $scope.layers.popups.children = [];
                                 $scope.stage.draw();
-                            }, 500);
+                            }, 250);
                         });
 
                         infoBox.add(new Kinetic.Rect({
                             x: 0,
                             y: 0,
+                            width: infoWidth,
+                            height: 10,
+                            opacity: 0
+                        }));
+
+                        infoBox.add(new Kinetic.Rect({
+                            x: 0,
+                            y: 10,
                             width: infoWidth,
                             height: 35,
                             fill: '#f1f1f1',
