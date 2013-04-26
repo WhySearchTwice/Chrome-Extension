@@ -116,7 +116,6 @@ angular.module('history.directives', [])
                         strokeWidth: 4
                     });
                     pageView.on('mouseover', function(event) {
-                        console.log(node);
                         var infoWidth = node.pageUrl.length * 7 + 20;
 
                         // Prevents popups from going off the page.
@@ -129,7 +128,18 @@ angular.module('history.directives', [])
 
                         var infoBox = new Kinetic.Group({
                             x: event.pageX - edgeOffset,
-                            y: event.pageY - 1
+                            y: event.pageY - 40
+                        });
+
+                        infoBox.on('mouseover', function() {
+                            $timeout.cancel($scope.popupTimer);
+                        });
+
+                        infoBox.on('mouseout', function() {
+                            $scope.popupTimer = $timeout(function() {
+                                $scope.layers.popups.children = [];
+                                $scope.stage.draw();
+                            }, 500);
                         });
 
                         infoBox.add(new Kinetic.Rect({
@@ -151,14 +161,18 @@ angular.module('history.directives', [])
                             y: 10
                         }));
 
+                        $scope.layers.popups.children = [];
+                        $scope.stage.draw();
                         $scope.layers.popups.add(infoBox);
                         $scope.layers.popups.moveToTop();
                         $scope.stage.draw();
                     });
 
                     pageView.on('mouseout', function() {
-                        $scope.layers.popups.children = [];
-                        $scope.stage.draw();
+                        $scope.popupTimer = $timeout(function() {
+                            $scope.layers.popups.children = [];
+                            $scope.stage.draw();
+                        }, 500);
                     });
 
 
