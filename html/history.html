@@ -20,26 +20,29 @@
                         <i class="icon-search"></i>
                     </button>
                 </form>
-                <div class="navbar-controls">
+                <div class="navbar-controls" ng-controller="Controls">
                     <button class="btn pull-right">
                         <i class="icon-cog"></i>
                     </button>
                     <div class="btn-group pull-right">
-                        <button class="btn">
+                        <button class="btn" ng-click="zoom(10)">
                             <i class="icon-zoom-out"></i>
                         </button>
-                        <button class="btn">
+                        <button class="btn" ng-click="zoom(-10)">
                             <i class="icon-zoom-in"></i>
                         </button>
                     </div>
                     <div class="btn-group pull-right">
-                        <button class="btn">
+                        <button class="btn" ng-click="page(-.75)">
                             <i class="icon-chevron-left"></i>
                         </button>
-                        <button class="btn">
+                        <button class="btn" ng-click="page(.75)">
                             <i class="icon-chevron-right"></i>
                         </button>
                     </div>
+                    <button class="btn pull-right" ng-click="debug()">
+                        <i class="icon-info-sign"></i>
+                    </button>
                 </div>
             </div>
         </div>

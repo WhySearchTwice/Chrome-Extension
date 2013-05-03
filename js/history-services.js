@@ -2,7 +2,7 @@ angular.module('history.services', [], function($provide) {
 
     /**
      * background service for interacting with background.js
-     * @author Ansel
+     * @author ansel
      */
     $provide.factory('background', function() {
         return {
@@ -16,14 +16,26 @@ angular.module('history.services', [], function($provide) {
     });
 
     /**
+     * Sends broadcast messages between scopes
+     * @author ansel
+     */
+    $provide.factory('broadcast', function($rootScope) {
+        return {
+            send: function(data) {
+                $rootScope.$broadcast('handleBroadcast', data);
+            }
+        };
+    });
+
+    /**
      * rexster service for interacting with rexster endpoints
-     * @author Ansel
+     * @author ansel
      */
     $provide.factory('rexster', ['$http', 'background', function($http, background) {
         return {
             /**
              * Search the graph with Rexster
-             * @author Ansel
+             * @author ansel
              *
              * @param  {Int}    targetTime Unix time in middle of range
              * @param  {Object} params     Optional search arguments
@@ -38,22 +50,27 @@ angular.module('history.services', [], function($provide) {
              * @return {Object}            Angular Promise
              */
             search: function(openRange, closeRange, params, callback) {
-                if (typeof params === 'function') {
-                    callback = params;
-                    params = {};
-                }
-                if (openRange && closeRange) {
-                    var encoded = [];
-                    params = params || {};
-                    params.userGuid = localStorage.userGuid || params.userGuid;
-                    params.openRange = openRange;
-                    params.closeRange = closeRange;
-                    for (var key in params) {
-                        encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
-                    }
-                    var request = '/parsley/search?' + encoded.join('&');
-                } else {
+                if (typeof openRange === 'function') {
+                    // request for persistent tabs
+                    callback = openRange;
                     var request = '/vertices/' + localStorage.deviceGuid + '/parsley/cleanup/openTabs';
+                } else {
+                    if (typeof params === 'function') {
+                        // handle omitted params object
+                        callback = params;
+                        params = {};
+                    }
+                    if (openRange && closeRange) {
+                        var encoded = [];
+                        params = params || {};
+                        params.userGuid = localStorage.userGuid || params.userGuid;
+                        params.openRange = openRange;
+                        params.closeRange = closeRange;
+                        for (var key in params) {
+                            encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
+                        }
+                        var request = '/parsley/search?' + encoded.join('&');
+                    }
                 }
 
                 return $http

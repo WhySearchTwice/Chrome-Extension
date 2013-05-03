@@ -1,8 +1,75 @@
-function Tree($scope, rexster) {
+/**
+ * Controller for the header controls
+ * @author ansel
+ */
+function Controls($scope, broadcast) {
+    $scope.zoom = function(timeDelta) {
+        broadcast.send({
+            'action': 'zoom',
+            'timeDelta': timeDelta
+        });
+    };
+    $scope.page = function(pageAmount) {
+        broadcast.send({
+            'action': 'page',
+            'pageAmount': pageAmount
+        });
+    };
+    $scope.debug = function() {
+        broadcast.send({ 'action': 'debug' });
+    };
+}
+
+/**
+ * Controller for canvas and everything in it
+ * @author ansel
+ */
+function Tree($scope, rexster, broadcast) {
+
+    /**
+     * Returns current time or debug time
+     * @author ansel
+     *
+     * @return {String} Unix epoch timestamp
+     */
+    $scope.now = function() {
+        return localStorage.targetTime || (new Date()).getTime();
+    };
+
     // scope constants
+    $scope.right = $scope.now();
     $scope.range = localStorage.range || 30;            // range in minutes
-    $scope.offset = localStorage.offset || 100;         // right offset in px
+    $scope.offset = localStorage.offset || 0;         // right offset in px
     $scope.lineHeight = localStorage.lineHeight || 20;  // history line height in px
+
+    // listen for parameter changes
+    $scope.$on('handleBroadcast', function(event, data) {
+        console.log(data);
+        switch (data.action) {
+        case 'zoom':
+            $scope.range = $scope.range + data.timeDelta;
+            if ($scope.range <= 0) {
+                $scope.range = 1;
+            }
+            break;
+
+        case 'page':
+            console.log($scope.right);
+            console.log(($scope.range * 60000));
+            console.log(data.pageAmount);
+            console.log(($scope.range * 60000) * data.pageAmount);
+            $scope.right = $scope.right + ($scope.range * 60000) * data.pageAmount;
+            if ($scope.right > $scope.now()) {
+                $scope.right = $scope.now();
+            }
+            break;
+
+        case 'debug':
+            console.log('DEBUG Tree:');
+            console.log($.extend({}, $scope));
+            break;
+        }
+    });
 
     // Object contains runtime datastore and associated functions
     $scope.tree = {
@@ -96,9 +163,9 @@ function Tree($scope, rexster) {
          */
         index: function(pageViews) {
             console.log('Indexing page views...');
-
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
+                if (pageView.pageUrl === 'chrome://newtab/') { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
 
                 // get or create device
                 var device = $scope.tree.getDevice(pageView.deviceGuid);
@@ -164,7 +231,8 @@ function Tree($scope, rexster) {
          * Build tree relationships based on pointers to index
          * @author ansel
          *
-         * @param {Array} pageViews Optional array of pageViews to build. Builds entire index if not set
+         * @param {Array}    pageViews Optional array of pageViews to build. Builds entire index if not set
+         * @param {Function} callback  Optional callback function
          */
         build: function(pageViews) {
             console.log('Building tree...');
@@ -216,28 +284,21 @@ function Tree($scope, rexster) {
     };
 
     /**
-     * Returns current time or debug time
-     * @author ansel
-     *
-     * @return {String} Unix epoch timestamp
-     */
-    $scope.now = function() {
-        return localStorage.targetTime || (new Date()).getTime();
-    };
-
-    /**
      * Fetches data and updates tree
      * @author ansel
      */
-    $scope.tick = function() {
-        rexster.search($scope.now() - $scope.range * 60000, $scope.now(), function(response) {
-            $scope.tree.build(response);
-            // get persistent tabs
-            /*rexster.search(null, null, function(response) {
-                $scope.tree.build(response);
-            });*/
+    $scope.updateData = function() {
+        // do search
+        rexster.search($scope.right - $scope.range * 60000, $scope.right, function(results) {
+            // check for persistent tabs
+            rexster.search(function(persistentPages) {
+                $scope.tree.indexed = { devices: {} };
+                $scope.tree.built = { root: {} };
+                $scope.tree.vertexIds = {};
+                $scope.tree.build(persistentPages.concat(results));
+            });
         });
     };
 
-    $scope.tick();
+    $scope.updateData();
 }
