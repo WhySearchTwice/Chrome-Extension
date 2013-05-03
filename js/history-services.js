@@ -37,12 +37,17 @@ angular.module('history.services', [], function($provide) {
              *
              * @return {Object}            Angular Promise
              */
-            search: function(targetTime, params, callback) {
-                if (targetTime) {
+            search: function(openRange, closeRange, params, callback) {
+                if (typeof params === 'function') {
+                    callback = params;
+                    params = {};
+                }
+                if (openRange && closeRange) {
                     var encoded = [];
                     params = params || {};
                     params.userGuid = localStorage.userGuid || params.userGuid;
-                    params.openTime = targetTime;
+                    params.openRange = openRange;
+                    params.closeRange = closeRange;
                     for (var key in params) {
                         encoded.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
                     }

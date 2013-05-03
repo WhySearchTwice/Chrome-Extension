@@ -99,7 +99,6 @@ function Tree($scope, rexster) {
 
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
-                if (!pageView.userGuid) { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
 
                 // get or create device
                 var device = $scope.tree.getDevice(pageView.deviceGuid);
@@ -231,10 +230,7 @@ function Tree($scope, rexster) {
      * @author ansel
      */
     $scope.tick = function() {
-        rexster.search($scope.now(), {
-            timeRange: $scope.range * 1.1, // 1.1: fetch more results than fit on the screen so it looks right
-            timeRangeUnits: 'minutes'
-        }, function(response) {
+        rexster.search($scope.now() - $scope.range * 60000, $scope.now(), function(response) {
             $scope.tree.build(response);
             // get persistent tabs
             /*rexster.search(null, null, function(response) {

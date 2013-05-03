@@ -34,3 +34,8 @@ body {
     overflow-x: hidden;
     padding: 0;
 }
+
+.navbar-controls > div,
+.navbar-controls > button {
+    margin-left: 10px;
+}
