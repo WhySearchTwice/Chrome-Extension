@@ -13,7 +13,7 @@
     <div class="navbar navbar-static-top">
         <div class="navbar-inner">
             <div class="container-fluid">
-                <span class="brand">Your History</span>
+                <span class="brand">History</span>
                 <form class="navbar-form pull-left">
                     <input type="text" id="search" placeholder="Search for pages, dates, times, & devices...">
                     <button class="btn btn-primary">
@@ -47,7 +47,10 @@
             </div>
         </div>
     </div>
-
+    <div class="range" ng-controller="Range">
+        <span class="open-range">{{openRangeDate}}<strong>{{openRangeTime}}</strong></span>
+        <span class="close-range">{{closeRangeDate}}<strong>{{closeRangeTime}}</strong></span>
+    </div>
     <div class="container-fluid">
         <div class="row-fluid">
             <div ng-view></div>

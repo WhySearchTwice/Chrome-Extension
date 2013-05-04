@@ -1,3 +1,6 @@
+/* JSHint: */
+/* global moment */
+
 /**
  * Controller for the header controls
  * @author ansel
@@ -21,6 +24,22 @@ function Controls($scope, broadcast) {
 }
 
 /**
+ * Controller for range scale
+ * @author ansel
+ */
+function Range($scope, broadcast) {
+    $scope.$on('handleBroadcast', function(event, data) {
+        console.log(data);
+        if (data.action === 'updateRange') {
+            $scope.openRangeDate = moment(data.openRange).format('MMM D');
+            $scope.openRangeTime = moment(data.openRange).format('H:mma');
+            $scope.closeRangeDate = moment(data.closerRange).format('MMM D');
+            $scope.closeRangeTime = moment(data.closerRange).format('H:mma');
+        }
+    });
+}
+
+/**
  * Controller for canvas and everything in it
  * @author ansel
  */
@@ -36,11 +55,25 @@ function Tree($scope, rexster, broadcast) {
         return localStorage.targetTime || (new Date()).getTime();
     };
 
+    /**
+     * Broadcasts range update to other controllers
+     * @author ansel
+     */
+    $scope.updateRange = function() {
+        broadcast.send({
+            'action': 'updateRange',
+            'openRange': $scope.right - $scope.range * 1000 * 60,
+            'closeRange': $scope.right
+        });
+    };
+
     // scope constants
     $scope.right = $scope.now();
     $scope.range = localStorage.range || 30;            // range in minutes
     $scope.offset = localStorage.offset || 0;         // right offset in px
     $scope.lineHeight = localStorage.lineHeight || 20;  // history line height in px
+
+    $scope.updateRange();
 
     // listen for parameter changes
     $scope.$on('handleBroadcast', function(event, data) {
@@ -51,17 +84,15 @@ function Tree($scope, rexster, broadcast) {
             if ($scope.range <= 0) {
                 $scope.range = 1;
             }
+            $scope.updateRange();
             break;
 
         case 'page':
-            console.log($scope.right);
-            console.log(($scope.range * 60000));
-            console.log(data.pageAmount);
-            console.log(($scope.range * 60000) * data.pageAmount);
-            $scope.right = $scope.right + ($scope.range * 60000) * data.pageAmount;
+            $scope.right = $scope.right + ($scope.range * 1000 * 60) * data.pageAmount;
             if ($scope.right > $scope.now()) {
                 $scope.right = $scope.now();
             }
+            $scope.updateRange();
             break;
 
         case 'debug':
@@ -289,7 +320,7 @@ function Tree($scope, rexster, broadcast) {
      */
     $scope.updateData = function() {
         // do search
-        rexster.search($scope.right - $scope.range * 60000, $scope.right, function(results) {
+        rexster.search($scope.right - $scope.range * 1000 * 60, $scope.right, function(results) {
             // check for persistent tabs
             rexster.search(function(persistentPages) {
                 $scope.tree.indexed = { devices: {} };

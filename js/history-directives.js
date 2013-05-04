@@ -1,5 +1,5 @@
 /* JSHint: */
-/* global Tree, moment */
+/* global Tree */
 
 angular.module('history.directives', [])
     .directive('kinetic', function($timeout, $window) {
@@ -41,32 +41,9 @@ angular.module('history.directives', [])
                     $scope.leftTime = $scope.right - (1000 * 60 * $scope.range);                            // leftTime = now - range in ms
                     if ($scope.layers.tree) {
                         $scope.layers.tree.removeChildren();
-                        $scope.layers.scale.removeChildren();
                     } else {
                         $scope.layers.tree = new Kinetic.Layer();
-                        $scope.layers.scale = new Kinetic.Layer();
                     }
-
-                    // draw scale
-                    $scope.layers.scale.add(new Kinetic.Text({
-                        text: moment($scope.leftTime).format('MMM D H:mma'),
-                        fontSize: 13,
-                        fontFamily: '"Ubuntu Mono"',
-                        fill: '#000',
-                        x: 5,
-                        y: 5
-                    }));
-                    $scope.layers.scale.add(new Kinetic.Text({
-                        text: moment($scope.right).format('MMM D H:mma'),
-                        fontSize: 13,
-                        fontFamily: '"Ubuntu Mono"',
-                        fill: '#000',
-                        x: window.innerWidth - $scope.offset - 100,
-                        y: 5
-                    }));
-                    $scope.stage.add($scope.layers.scale);
-
-                    // draw tree
                     var y = $scope.lineHeight;
                     var roots = Object.keys($scope.tree.built.root).sort();
                     for (var i = 0, l = roots.length; i < l; i++) {
