@@ -144,8 +144,8 @@ body {
 
 .range {
     background-color: #eee;
+    height: 20px;
     left: 0;
-    overflow: hidden;
     padding: 5px 10px;
     position: static;
     top: 41px;
@@ -163,6 +163,20 @@ body {
 
     .close-range {
         float: right;
+    }
+
+    .range-selection-label {
+        padding-left: 5px;
+        position: absolute;
+        top: 45px;
+    }
+
+    .range-selection-marker {
+        background: #c5c5c5;
+        height: calc(100% - 41px);
+        position: fixed;
+        top: 41px;
+        width: 1px;
     }
 
 .container-fluid {

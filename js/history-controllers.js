@@ -31,12 +31,31 @@ function Range($scope, broadcast) {
     $scope.$on('handleBroadcast', function(event, data) {
         console.log(data);
         if (data.action === 'updateRange') {
-            $scope.openRangeDate = moment(data.openRange).format('MMM D');
-            $scope.openRangeTime = moment(data.openRange).format('H:mma');
-            $scope.closeRangeDate = moment(data.closerRange).format('MMM D');
-            $scope.closeRangeTime = moment(data.closerRange).format('H:mma');
+            $scope.openRange = {
+                'timestamp': data.openRange,
+                'date': moment(data.openRange).format('MMM D'),
+                'time': moment(data.openRange).format('H:mma')
+            };
+            $scope.closeRange = {
+                'timestamp': data.closeRange,
+                'date': moment(data.closeRange).format('MMM D'),
+                'time': moment(data.closeRange).format('H:mma')
+            };
         }
     });
+
+    $scope.moveSelection = function($event) {
+        var selection = $scope.openRange.timestamp + (($scope.closeRange.timestamp - $scope.openRange.timestamp) * ($event.pageX / window.innerWidth));
+        $scope.selection = {
+            'style': { 'left': $event.pageX + 'px' },
+            'date': moment(selection).format('MMM D'),
+            'time': moment(selection).format('H:mma')
+        };
+    };
+
+    $scope.removeSelection = function($event) {
+        delete $scope.selection;
+    };
 }
 
 /**
