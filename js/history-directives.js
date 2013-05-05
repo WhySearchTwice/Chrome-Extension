@@ -2,7 +2,7 @@
 /* global Tree */
 
 angular.module('history.directives', [])
-    .directive('kinetic', function($timeout, $window) {
+    .directive('kinetic', function($timeout, $window, $location) {
         return {
             restrict: 'E',
             replace: true,
@@ -187,6 +187,10 @@ angular.module('history.directives', [])
                             x: 10,
                             y: 10
                         }));
+
+                        infoBox.on('click', function () {
+                            window.location.replace(node.pageUrl);
+                        });
 
                         $scope.layers.popups.children = [];
                         $scope.stage.draw();
