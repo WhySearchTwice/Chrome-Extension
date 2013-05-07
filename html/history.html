@@ -48,8 +48,8 @@
         </div>
     </div>
     <div class="range" ng-controller="Range" ng-mousemove="moveSelection($event)" ng-mouseout="removeSelection()">
-        <span class="open-range">{{openRange.date}}<strong>{{openRange.time}}</strong></span>
-        <span class="close-range">{{closeRange.date}}<strong>{{closeRange.time}}</strong></span>
+        <span class="open-range" ng-class="{fade: selection.left < 150}">{{openRange.date}}<strong>{{openRange.time}}</strong></span>
+        <span class="close-range" ng-class="{fade: selection.right < 150}">{{closeRange.date}}<strong>{{closeRange.time}}</strong></span>
         <span class="range-selection-label" ng-show="selection" ng-style="selection.style">{{selection.date}}<strong>{{selection.time}}</strong></span>
         <div class="range-selection-marker" ng-show="selection" ng-style="selection.style"></div>
     </div>

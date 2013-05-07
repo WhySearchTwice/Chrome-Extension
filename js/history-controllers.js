@@ -29,7 +29,6 @@ function Controls($scope, broadcast) {
  */
 function Range($scope, broadcast) {
     $scope.$on('handleBroadcast', function(event, data) {
-        console.log(data);
         if (data.action === 'updateRange') {
             $scope.openRange = {
                 'timestamp': data.openRange,
@@ -47,7 +46,9 @@ function Range($scope, broadcast) {
     $scope.moveSelection = function($event) {
         var selection = $scope.openRange.timestamp + (($scope.closeRange.timestamp - $scope.openRange.timestamp) * ($event.pageX / window.innerWidth));
         $scope.selection = {
-            'style': { 'left': $event.pageX + 'px' },
+            'style': window.innerWidth - $event.pageX < 400  ? { 'right': window.innerWidth - $event.pageX + 'px' } : { 'left': $event.pageX + 'px' },
+            'left': $event.pageX,
+            'right': window.innerWidth - $event.pageX,
             'date': moment(selection).format('MMM D'),
             'time': moment(selection).format('H:mma')
         };
