@@ -131,8 +131,8 @@ function cacheUpdatePage(page) {
         db.transaction(function (tx) {
             tx.executeSql('UPDATE views ' +
                           'SET closeTime=\'' + page.pageCloseTime + '\' ' +
-                          'WHERE id=\'' + page.id + '\' ',
-                          [],
+                          'WHERE id = (?)',
+                          [page.id],
                           function (tx2, results) {
                               
                           },
@@ -157,12 +157,38 @@ function cacheUpdatePage(page) {
         con("invalid page in cacheUpdatePage");
     }
 }
-    
+
+function cacheGetTimeRange(openRange, closeRange, successFunction) {
+  con("cacheGetTimeRange");
+
+  //make sure the params are there
+  //openRange needs to be in the future relative to closeRange
+  if (!successFunction ||
+      !(typeof(successFunction) === 'function')
+      !openRange ||
+      !closeRange ||
+      !(closeRange > openRange)) {
+    return;
+  }
+
+  db.transaction(function (tx) {
+    tx.executeSql('SELECT * from views ' +
+                  'WHERE closeTime >= (?) ' +
+                  'AND openTime <= (?) ',
+                  [openRange, closeRange],
+                  function (tx, results, successFunction) {
+                    //TODO: put results in a form that ansel can deal with, call successFunction
+                  },
+                  errorHandle);
+  });
+}
+  
 function errorHandle(tx, error) {
     con('ERROR FOR MATT:');
     console.log(error);
     //shuld rollback any transaction,
     //oh wait, websql doesn't provide transactions
+    //meaning we really can't handle an error
     return true;
 }
 
