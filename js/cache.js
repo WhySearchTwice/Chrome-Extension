@@ -19,7 +19,7 @@ var db = openDatabase(dbName,
                       dbSize);
 
 //the 'fuzzy' max views the database allows
-var maxRows = 10;
+var maxRows = 1000;
 
 function con(string) {
     console.log('%c' + string, 'background: #00CC00; color: #000000');
@@ -161,7 +161,9 @@ function cacheUpdatePage(page) {
 function errorHandle(tx, error) {
     con('ERROR FOR MATT:');
     console.log(error);
-    return true; //should rollback any transaction, not tested
+    //shuld rollback any transaction,
+    //oh wait, websql doesn't provide transactions
+    return true;
 }
 
 //to be removed
