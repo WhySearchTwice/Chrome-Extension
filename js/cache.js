@@ -8,8 +8,8 @@ Read from cache
 Database to cache
 */
 
-var dbName = 'beetle';
-var dbVersion = '0.1';
+var dbName = 'caterpillar4';
+var dbVersion = '0.24';
 var dbDescription = 'cache of web usage';
 var dbSize = 5 * 1024 * 1024 + ''; //5 Megabytes
 
@@ -26,21 +26,30 @@ function con(string) {
 }
 
 function initializeDatabase() {
-    //con('initializingDatabase');
+    con('initializingDatabase');
 
     //NOTE: WEBSQL SUCKS AND DOESN'T ENFORCE FOREIGN KEYS
     var views = 'CREATE TABLE IF NOT EXISTS views (' +
                      'id INT NOT NULL, ' +
                      'url TEXT NOT NULL, ' +
                      'parentId INT NOT NULL, ' +
+                     'predecessorId INT NOT NULL, ' +
                      'openTime TIMESTAMP NOT NULL, ' +
                      'closeTime TIMESTAMP NOT NULL, ' +
                      'insertTime TIMESTAMP NOT NULL, ' +
+                     'tabId INT NOT NULL, ' +
+                     'windowId INT NOT NULL, ' +
+                     'deviceGuid INT NOT NULL, ' +
+                     'userGuid INT NOT NULL, ' +
+                     //hand waving because websql doesn't
+                     //use PRIMARY KEYs well anyway
                      'PRIMARY KEY (id)' +
                 ')';
     var focus = 'CREATE TABLE IF NOT EXISTS focus (' +
                      'viewId INT NOT NULL, ' +
                      'time TIMESTAMP NOT NULL, ' +
+                     //note that websql doesn't enforce
+                     //foreign key constraints
                      'FOREIGN KEY (viewId) REFERENCES pages (id) ' +
                      'ON DELETE CASCADE' +
                 ')';
@@ -61,19 +70,30 @@ function validateSendPage(page, id) {
            id &&
            page.pageOpenTime &&
            page.pageUrl &&
-           page.parentId;
+           page.parentId &&
+           page.predecessorId &&
+           page.tabId &&
+           page.userGuid &&
+           page.windowId;
 }
 
-function cacheSendPage(page, id) {
+function cacheSendPage(page, id, response) {
     con("cacheSendPage " + id);
+    console.log(page);
 
     if (typeof(page.parentId) == 'undefined') {
         con("setting parentId");
         page.parentId = -1;
     }
 
+    if (typeof(page.predecessorId) == 'undefined') {
+        con("setting predecessorId");
+        page.predecessorId = -1;
+    }
+
     if (!validateSendPage(page, id)) {
-        con("invalid page in cacheSendPge");
+        con("invalid page in cacheSendPge, page:");
+        console.log(page);
     }
 
     db.transaction(function (tx) {
@@ -101,15 +121,21 @@ function cacheSendPage(page, id) {
                               });
                           }
                           db.transaction(function (tx4) {                              
-                              tx4.executeSql('INSERT INTO views (id, url, parentId, ' +
-                                             'openTime, closeTime, insertTime) ' +
-                                             'VALUES (?, ?, ?, ?, ?, ?)',
+                              tx4.executeSql('INSERT INTO views (id, url, parentId, predecessorId, ' +
+                                             'openTime, closeTime, insertTime, ' +
+                                             'tabId, windowId, deviceGuid, userGuid)' +
+                                             'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                                              [id,
                                               page.pageUrl,
                                               page.parentId,
+                                              page.predecessorId,
                                               page.pageOpenTime,
                                               -1,
-                                              (new Date()).getTime()],
+                                              (new Date()).getTime(),
+                                              page.tabId,
+                                              page.windowId,
+                                              page.deviceGuid,
+                                              page.userGuid],
                                              undefined,
                                              errorHandle);
                           });                      
@@ -130,9 +156,10 @@ function cacheUpdatePage(page) {
     if (validateUpdatePage(page)) {
         db.transaction(function (tx) {
             tx.executeSql('UPDATE views ' +
-                          'SET closeTime=\'' + page.pageCloseTime + '\' ' +
+                          'SET closeTime = (?) ' +
                           'WHERE id = (?)',
-                          [page.id],
+                          [page.pageCloseTime,
+                          page.id],
                           function (tx2, results) {
                               
                           },
@@ -164,20 +191,38 @@ function cacheGetTimeRange(openRange, closeRange, successFunction) {
   //make sure the params are there
   //openRange needs to be in the future relative to closeRange
   if (!successFunction ||
-      !(typeof(successFunction) === 'function')
-      !openRange ||
-      !closeRange ||
+      !(typeof(successFunction) === 'function') ||
       !(closeRange > openRange)) {
     return;
   }
 
-  db.transaction(function (tx) {
+  db.transaction(function (tx, successFunction) {
     tx.executeSql('SELECT * from views ' +
-                  'WHERE closeTime >= (?) ' +
-                  'AND openTime <= (?) ',
+                  'WHERE (closeTime >= (?) OR closeTime = -1) ' +
+                  'AND openTime <= (?)',
                   [openRange, closeRange],
-                  function (tx, results, successFunction) {
-                    //TODO: put results in a form that ansel can deal with, call successFunction
+                  function (tx, sqlResults, successFunction) {
+                    console.log(sqlResults.rows.length);
+                    var temp = [];
+                    for (var i = 0; i < sqlResults.rows.length; i++) {
+                      var pageView = {};
+                      pageView.tabId = sqlResults.rows.item(i).tabId;
+                      pageView.windowId = sqlResults.rows.item(i).windowId;
+                      pageView.pageOpenTime = sqlResults.rows.item(i).openTime;
+                      pageView.pageCloseTime = sqlResults.rows.item(i).closeTime;
+                      pageView.pageUrl = sqlResults.rows.item(i).url;
+                      pageView.type = 'pageView';
+                      pageView.id = sqlResults.rows.item(i).id;
+                      pageView.deviceGuid = sqlResults.rows.item(i).deviceGuid;
+                      pageView.predecessorId = sqlResults.rows.item(i).predecessorId;
+
+                      temp.push(pageView);
+                    }
+                    var searchResults = {};
+                    searchResults.results = temp;
+                    //TODO: research and fix with a closure
+                    //cacheGetTimeRange(0, 1369134594525, function(results) {console.log(results);})
+                    successFunction(searchResults);
                   },
                   errorHandle);
   });
@@ -194,7 +239,7 @@ function errorHandle(tx, error) {
 
 //to be removed
 function dropDatabase() {
-    //con('dropDatabase');
+    con('dropDatabase');
     db.transaction(function (tx) {
         tx.executeSql('DROP TABLE views',
                       [],
@@ -216,12 +261,18 @@ function dumpDatabase() {
                           var len = results.rows.length, i;
                           console.log("LEN = " + len);
                           for (i = 0; i < len; i++) {
-                              con("view: " + results.rows.item(i).id + ", " +
+                              con("view: " +
+                                  results.rows.item(i).id + ", " +
                                   results.rows.item(i).url + ", " +
                                   results.rows.item(i).parentId + ", " +
+                                  results.rows.item(i).predecessorId + ", " +
                                   results.rows.item(i).openTime + ", " +
                                   results.rows.item(i).closeTime + ", " +
-                                  results.rows.item(i).insertTime);
+                                  results.rows.item(i).insertTime + ", " +
+                                  results.rows.item(i).tabId + ", " +
+                                  results.rows.item(i).windowId + ", " +
+                                  results.rows.item(i).deviceGuid + ", " +
+                                  results.rows.item(i).userGuid);
                           }
                       },
                       errorHandle);

@@ -479,7 +479,7 @@ function sendPage(windowId, tabId) {
         return function() {
             post(SERVER + '/graphs/WhySearchTwice/parsley/pageView', page, function(request) {
                 var response = JSON.parse(request.response);
-                cacheSendPage(page, response.id);
+                cacheSendPage(page, response.id, response);
 
                 if (session.windows[page.windowId] &&
                     session.windows[page.windowId].tabs[page.tabId]
