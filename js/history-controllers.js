@@ -27,7 +27,7 @@ function Controls($scope, broadcast) {
  * Controller for range scale
  * @author ansel
  */
-function Range($scope, broadcast) {
+function Range($scope) {
     $scope.$on('handleBroadcast', function(event, data) {
         if (data.action === 'updateRange') {
             $scope.openRange = {
@@ -57,6 +57,40 @@ function Range($scope, broadcast) {
     $scope.removeSelection = function($event) {
         delete $scope.selection;
     };
+}
+
+/**
+ * Controller for the Info Box
+ * @author ansel
+ */
+function InfoBox($scope, $timeout) {
+    $scope.visible = false;
+    $scope.keepInfoBox = function() {
+        $timeout.cancel($scope.popupTimer);
+    };
+    $scope.hideInfoBox = function() {
+        $scope.popupTimer = $timeout(function() {
+            $scope.visible = false;
+        }, 250);
+    };
+    $scope.openPage = function() {
+        window.open($scope.infoBox.pageUrl);
+    };
+    $scope.$on('handleBroadcast', function(event, data) {
+        $timeout.cancel($scope.popupTimer);
+        switch (data.action) {
+        case 'showInfoBox':
+            $timeout.cancel($scope.popupTimer);
+            $scope.infoBox = data.infoBox;
+            $scope.visible = true;
+            $scope.$apply();
+            break;
+
+        case 'hideInfoBox':
+            $scope.hideInfoBox();
+            break;
+        }
+    });
 }
 
 /**
@@ -97,7 +131,6 @@ function Tree($scope, rexster, broadcast) {
 
     // listen for parameter changes
     $scope.$on('handleBroadcast', function(event, data) {
-        console.log(data);
         switch (data.action) {
         case 'zoom':
             $scope.range = $scope.range + data.timeDelta;
@@ -216,7 +249,7 @@ function Tree($scope, rexster, broadcast) {
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
-                if (pageView.pageUrl === 'chrome://newtab/') { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
+                //if (pageView.pageUrl === 'chrome://newtab/') { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
 
                 // get or create device
                 var device = $scope.tree.getDevice(pageView.deviceGuid);
@@ -262,7 +295,7 @@ function Tree($scope, rexster, broadcast) {
          */
         addNode: function(pageView, ancestor, relationship) {
             pageView = $scope.tree.getPageView(pageView.indexedKey);
-            if (!ancestor) {
+            if (!ancestor || !ancestor.builtKey) {
                 $scope.tree.built.root[pageView.pageOpenTime] = { node: pageView };
                 pageView.builtKey = ['root', pageView.pageOpenTime];
             } else {

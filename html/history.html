@@ -56,6 +56,17 @@
     <div class="container-fluid">
         <div class="row-fluid">
             <div ng-view></div>
+            <div id="infoBox"
+                ng-cloak
+                ng-controller="InfoBox"
+                ng-show="visible"
+                ng-animate="{show: 'popIn', hide: 'popOut'}"
+                ng-mouseover="keepInfoBox()"
+                ng-mouseout="hideInfoBox()"
+                ng-style="infoBox.style"
+            >
+                <a href="{{infoBox.url}}" class="pageUrl" title="{{infoBox.url}}" target="_blank">{{infoBox.url}}</a>
+            </div>
         </div>
     </div>
 

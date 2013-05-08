@@ -2,7 +2,7 @@
 /* global Tree */
 
 angular.module('history.directives', [])
-    .directive('kinetic', function($timeout, $window, $location) {
+    .directive('kinetic', function($window, $location, broadcast) {
         return {
             restrict: 'E',
             replace: true,
@@ -15,8 +15,6 @@ angular.module('history.directives', [])
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
                 $scope.layers = {};
-                $scope.layers.popups = new Kinetic.Layer();
-                $scope.stage.add($scope.layers.popups);
 
                 $scope.viewportWidth = $window.innerWidth;
                 angular.element($window).bind('resize', function() {
@@ -98,9 +96,10 @@ angular.module('history.directives', [])
                             group.setHeight(group.getHeight() + subgroup.getHeight());
                             y = group.getHeight();
                             if (subtree.children) {
+                                var position = subgroup.children[0].getX() + 0.5;
                                 var path = new Kinetic.Line({
                                     opacity: 0.2,
-                                    points: [subgroup.children[0].getX(), 17, subgroup.children[0].getX(), group.getHeight() - 3],
+                                    points: [position, 16, position, group.getHeight() - 7], // 7px for endcap
                                     stroke: 'black',
                                     strokeWidth: 1
                                 });
@@ -124,90 +123,28 @@ angular.module('history.directives', [])
                  */
                 $scope.createNode = function(start, end, node) {
                     var group = new Kinetic.Group({
-                        x: start,
-                        y: 0,
+                        x: Math.round(start),
+                        y: 0.5,
                         height: 20
                     });
 
-                    var pageView = new Kinetic.Line({
-                        points: [0, 15, end - start > 3 ? end === window.innerWidth - $scope.offset ? Math.floor(end - start) : Math.floor(end - start - 2) : 2, 15], // -2px for border between successors
-                        stroke: !node.parentId && !node.predecessorId ? 'green': 'blue', // green == root
-                        strokeWidth: 4
-                    });
-                    pageView.on('mouseover', function(event) {
-                        $timeout.cancel($scope.popupTimer);
-                        var infoWidth = node.pageUrl.length * 7 + 20;
+                    var duration = (end - start > 3 ? Math.round(end - start) : 2) + 0.5;
 
-                        // Prevents popups from going off the page.
-                        var edgeOffset = (event.pageX - window.innerWidth) + infoWidth;
-                        if (edgeOffset < 0) {
-                            edgeOffset = 0;
-                        } else {
-                            edgeOffset += 20;
-                        }
-                        var infoBox = new Kinetic.Group({
-                            x: event.pageX - edgeOffset,
-                            y: event.pageY - $('canvas').offset().top
-                        });
-
-                        infoBox.on('mouseover', function() {
-                            $timeout.cancel($scope.popupTimer);
-                        });
-
-                        infoBox.on('mouseout', function() {
-                            $scope.popupTimer = $timeout(function() {
-                                $scope.layers.popups.children = [];
-                                $scope.stage.draw();
-                            }, 250);
-                        });
-
-                        infoBox.add(new Kinetic.Rect({
-                            x: 0,
-                            y: 0,
-                            width: infoWidth,
-                            height: 10,
-                            opacity: 0
-                        }));
-
-                        infoBox.add(new Kinetic.Rect({
-                            x: 0,
-                            y: 10,
-                            width: infoWidth,
-                            height: 35,
-                            fill: '#f1f1f1',
-                            stroke: 'black',
-                            strokeWidth: 2
-                        }));
-
-                        infoBox.add(new Kinetic.Text({
-                            text: node.pageUrl,
-                            fontSize: 13,
-                            fontFamily: '"Ubuntu Mono"',
-                            fill: '#000',
-                            x: 10,
-                            y: 10
-                        }));
-
-                        infoBox.on('click', function () {
-                            window.location.replace(node.pageUrl);
-                        });
-
-                        $scope.layers.popups.children = [];
-                        $scope.stage.draw();
-                        $scope.layers.popups.add(infoBox);
-                        $scope.layers.popups.moveToTop();
-                        $scope.stage.draw();
-                    });
-
-                    pageView.on('mouseout', function() {
-                        $scope.popupTimer = $timeout(function() {
-                            $scope.layers.popups.children = [];
-                            $scope.stage.draw();
-                        }, 500);
-                    });
-
-
-                    group.add(pageView);
+                    group.add(new Kinetic.Line({
+                        points: [0, 15, duration, 15], // -2px for border between successors
+                        stroke: '#000',
+                        strokeWidth: 1
+                    }));
+                    group.add(new Kinetic.Line({
+                        points: [0.5, 12, 0.5, 17],
+                        stroke: '#000',
+                        strokeWidth: 1
+                    }));
+                    group.add(new Kinetic.Line({
+                        points: [duration, 12, duration, 17],
+                        stroke: '#000',
+                        strokeWidth: 1
+                    }));
 
                     var predecessor = node.predecessorId ? $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) : undefined;
                     if ((end > 0 && start < 0) ||
@@ -225,15 +162,34 @@ angular.module('history.directives', [])
 
                         var label = new Kinetic.Text({
                             text: domain,
-                            fontSize: 13,
-                            fontFamily: '"Ubuntu Mono"',
-                            fill: end === window.innerWidth - $scope.offset ? '#000' : '#aaa', // black == still open
-                            x: start < 2 ? -1 * start : 0 // prevent text from falling off left side of screen
+                            fontSize: 14,
+                            fontFamily: '"Roboto"',
+                            fill: '#000',
+                            x: start < 2 ? Math.ceil(-1 * start) : 2 // prevent text from falling off left side of screen
                         });
                         group.add(label);
                     }
 
                     group.on('click', $scope.toggleHidden);
+                    group.on('mouseover', function(event) {
+                        // Prevents popups from going off the page.
+                        var hasSpace = window.innerWidth - event.pageX - 300 > 20;
+
+                        broadcast.send({
+                            'action': 'showInfoBox',
+                            'infoBox': {
+                                'url': node.pageUrl,
+                                'style': {
+                                    'left': (hasSpace ? event.pageX : window.innerWidth - 320) + 'px',
+                                    'top': event.pageY + 10 + 'px'
+                                }
+                            }
+                        });
+                    });
+                    group.on('mouseout', function() {
+                        broadcast.send({ 'action': 'hideInfoBox' });
+                    });
+
                     return group;
                 };
 
