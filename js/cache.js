@@ -2,10 +2,6 @@
 This file contains the code to interact with the local cache and Web SQL
 It's also owned by Matt so check with him before you mess with it.
 Ok fine you can mess with it but just tell him.
-
-Todo:
-Read from cache
-Database to cache
 */
 
 var dbName = 'caterpillar4';
@@ -95,6 +91,8 @@ function cacheSendPage(page, id, response) {
         con("invalid page in cacheSendPge, page:");
         console.log(page);
     }
+
+    //TODO: cut down the url to just the host
 
     db.transaction(function (tx) {
         tx.executeSql('SELECT * from views',
@@ -196,12 +194,12 @@ function cacheGetTimeRange(openRange, closeRange, successFunction) {
     return;
   }
 
-  db.transaction(function (tx, successFunction) {
+  db.transaction(function (tx) {
     tx.executeSql('SELECT * from views ' +
                   'WHERE (closeTime >= (?) OR closeTime = -1) ' +
                   'AND openTime <= (?)',
                   [openRange, closeRange],
-                  function (tx, sqlResults, successFunction) {
+                  function (tx, sqlResults) {
                     console.log(sqlResults.rows.length);
                     var temp = [];
                     for (var i = 0; i < sqlResults.rows.length; i++) {
@@ -220,14 +218,13 @@ function cacheGetTimeRange(openRange, closeRange, successFunction) {
                     }
                     var searchResults = {};
                     searchResults.results = temp;
-                    //TODO: research and fix with a closure
                     //cacheGetTimeRange(0, 1369134594525, function(results) {console.log(results);})
                     successFunction(searchResults);
                   },
                   errorHandle);
   });
 }
-  
+
 function errorHandle(tx, error) {
     con('ERROR FOR MATT:');
     console.log(error);
