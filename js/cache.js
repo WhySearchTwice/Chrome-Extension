@@ -15,7 +15,7 @@ var db = openDatabase(dbName,
                       dbSize);
 
 //the 'fuzzy' max views the database allows
-var maxRows = 1000;
+var maxRows = 100000;
 
 function con(string) {
     console.log('%c' + string, 'background: #00CC00; color: #000000');
