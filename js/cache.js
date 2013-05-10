@@ -219,7 +219,7 @@ function cacheGetTimeRange(openRange, closeRange, successFunction) {
                     var searchResults = {};
                     searchResults.results = temp;
                     //cacheGetTimeRange(0, 1369134594525, function(results) {console.log(results);})
-                    successFunction(searchResults);
+                    successFunction(JSON.stringify(searchResults));
                   },
                   errorHandle);
   });
