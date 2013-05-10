@@ -317,7 +317,13 @@ function Tree($scope, rexster, broadcast) {
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
-                if (!pageView.deviceGuid/*pageView.pageUrl === 'chrome://newtab/'*/) { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
+                if (!pageView ||
+                    !pageView.deviceGuid ||                 // pageView is not legal
+                    $scope.tree.vertexIds[pageView.id]) {   // pageView is a duplicate
+                    pageViews.splice(i, 1);
+                    i--;
+                    l--;
+                }
 
                 // get or create device
                 var device = $scope.tree.getDevice(pageView.deviceGuid);
@@ -367,16 +373,41 @@ function Tree($scope, rexster, broadcast) {
                 $scope.tree.built.root[pageView.pageOpenTime] = { node: pageView };
                 pageView.builtKey = ['root', pageView.pageOpenTime];
             } else {
-                var ancestorGroup = $scope.tree.built.root[ancestor.builtKey[1]];
-                for (var i = 2, l = ancestor.builtKey.length; i + 1 < l; i += 2) {
-                    ancestorGroup = ancestorGroup[ancestor.builtKey[i]][ancestor.builtKey[i + 1]];
-                }
-                if (!ancestorGroup[relationship]) {
-                    ancestorGroup[relationship] = {};
-                }
+                var ancestorGroup = $scope.tree.getNode(ancestor);
                 ancestorGroup[relationship][pageView.pageOpenTime] = { node: pageView };
+                if (pageView.builtKey) { $scope.tree.removeNode(pageView); }
                 pageView.builtKey = ancestor.builtKey.concat([relationship, pageView.pageOpenTime]);
             }
+        },
+
+        /**
+         * Removes and nodeGroup from the built tree
+         * @author ansel
+         *
+         * @param  {Object} pageView pageView to be removed
+         */
+        removeNode: function(pageView) {
+            if (pageView.parentId) {
+                delete $scope.tree.getNode(pageView).children[pageView.pageOpenTime];
+            } else {
+                delete $scope.tree.getNode(pageView).successor;
+            }
+        },
+
+        /**
+         * Gets the nodeGroup for the given pageView
+         * @author ansel
+         *
+         * @param  {Object} pageView nodeGroup to get
+         *
+         * @return {Object}          nodeGroup
+         */
+        getNode: function(pageView) {
+            var nodeGroup = $scope.tree.built.root[pageView.builtKey[1]];
+            for (var i = 2, l = pageView.builtKey.length; i + 1 < l; i += 2) {
+                nodeGroup = nodeGroup[pageView.builtKey[i]][pageView.builtKey[i + 1]];
+            }
+            return nodeGroup;
         },
 
         /**
@@ -430,6 +461,15 @@ function Tree($scope, rexster, broadcast) {
                 // increment or reset pointer
                 i = i === 0 ? pageViews.length - 1 : i - 1;
             }
+
+            // check root nodes for new parents
+            for (var pageOpenTime in $scope.tree.built.root) {
+                var pageView = $scope.tree.built.root[pageOpenTime];
+                if (pageView.parentId && $scope.tree.vertexIds[pageView.parentId] ||
+                    pageView.predecessorId && $scope.tree.vertexIds[pageView.predecessorId]) {
+                    $scope.tree.addNode(pageView, $scope.tree.getPageView($scope.tree.vertexIds[pageView.parentId || pageView.predecessorId]), pageView.parentId ? 'children' : 'successor');
+                }
+            }
             console.log('Build complete:');
             console.log($.extend({}, $scope.tree)); // use $.extend to create snapshot
         }
@@ -442,13 +482,11 @@ function Tree($scope, rexster, broadcast) {
     $scope.updateData = function() {
         // do search
         rexster.search($scope.rightTime - $scope.range * 1000 * 60, $scope.rightTime, function(results) {
-            // check for persistent tabs
-            rexster.search(function(persistentPages) {
-                $scope.tree.indexed = { devices: {} };
-                $scope.tree.built = { root: {} };
-                $scope.tree.vertexIds = {};
-                $scope.tree.build(persistentPages.concat(results));
-            });
+            $scope.tree.build(results);
+        });
+        // check for persistent tabs
+        rexster.search(function(persistentPages) {
+            $scope.tree.build(persistentPages);
         });
     };
 

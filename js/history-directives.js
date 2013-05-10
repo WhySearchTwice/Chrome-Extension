@@ -64,7 +64,7 @@ angular.module('history.directives', [])
                 };
 
                 $scope.$watch('tree.built', $scope.drawTree, true);
-                $scope.$watch('[range, right]', function() {
+                $scope.$watch('[range, rightTime]', function() {
                     $scope.drawTree();
                     $scope.updateData();
                 }, true);
