@@ -28,34 +28,91 @@ function Controls($scope, broadcast) {
  * @author ansel
  */
 function Range($scope) {
+    $scope.selection = [];
+    $scope.left = true;
+    $scope.right = true;
     $scope.$on('handleBroadcast', function(event, data) {
-        if (data.action === 'updateRange') {
+        switch (data.action) {
+        case 'updateRange':
             $scope.openRange = {
                 'timestamp': data.openRange,
                 'date': moment(data.openRange).format('MMM D'),
-                'time': moment(data.openRange).format('H:mma')
+                'time': moment(data.openRange).format('h:mma')
             };
             $scope.closeRange = {
                 'timestamp': data.closeRange,
                 'date': moment(data.closeRange).format('MMM D'),
-                'time': moment(data.closeRange).format('H:mma')
+                'time': moment(data.closeRange).format('h:mma')
             };
+            break;
+
+        case 'moveSelection':
+            $scope.moveSelection(data.selections);
+            $scope.$apply();
+            break;
+
+        case 'removeSelection':
+            $scope.removeSelection();
+            break;
         }
     });
 
-    $scope.moveSelection = function($event) {
-        var selection = $scope.openRange.timestamp + (($scope.closeRange.timestamp - $scope.openRange.timestamp) * ($event.pageX / window.innerWidth));
-        $scope.selection = {
-            'style': window.innerWidth - $event.pageX < 400  ? { 'right': window.innerWidth - $event.pageX + 'px' } : { 'left': $event.pageX + 'px' },
-            'left': $event.pageX,
-            'right': window.innerWidth - $event.pageX,
-            'date': moment(selection).format('MMM D'),
-            'time': moment(selection).format('H:mma')
-        };
+    $scope.moveSelection = function(data) {
+        $scope.selection = [];
+        if (data.type === 'mousemove') { data = [data]; }
+        // selection by range hover
+        for (var i = 0, l = data.length; i < l; i++) {
+            var selection = data[i].selection || $scope.openRange.timestamp + (($scope.closeRange.timestamp - $scope.openRange.timestamp) * (data[i].pageX / window.innerWidth));
+            $scope.selection.push({
+                'styleRight' : { 'right': window.innerWidth - data[i].pageX },
+                'styleLeft' : { 'left': data[i].pageX },
+                'date': moment(selection).format('MMM D'),
+                'time': moment(selection).format('h:mma')
+            });
+            $scope.selection[i].style = window.innerWidth - data[i].pageX < 400 ? $scope.selection[i].styleRight : $scope.selection[i].styleLeft;
+            $scope.left = data[i].pageX > 200;
+            $scope.right = window.innerWidth - data[i].pageX > 200;
+        }
+        if ($scope.selection.length === 2) {
+            // make sure that there is enough space for labels
+            var open = $scope.selection[0],
+                close = $scope.selection[1],
+                clearanceTier = close.style.right ? 300 : 125,
+                clearance = close.styleLeft.left - open.styleLeft.left;
+
+            if (clearance < clearanceTier) {
+                // there is not enough room for the labels between open and close
+                if (clearanceTier === 300) {
+                    // there are two labels between
+                    if (close.styleRight.right > 125) {
+                        // room to the right, move it
+                        close.style = close.styleLeft;
+                        $scope.right = window.innerWidth - (close.style.left + 125) > 200;
+                    } else {
+                        // no room, hide it
+                        delete close.time;
+                    }
+                }
+
+                if (clearanceTier === 125 && clearance < 125) {
+                    // there is one label between
+                    if (open.styleLeft.left > 125) {
+                        // room to the left, move it
+                        open.style = open.styleRight;
+                        $scope.left = window.innerWidth - (open.style.right + 125) > 200;
+                    } else {
+                        // no room, hide it
+                        delete open.time;
+                    }
+                }
+            }
+        }
     };
 
     $scope.removeSelection = function($event) {
-        delete $scope.selection;
+        $scope.selection = [];
+        $scope.left = true;
+        $scope.right = true;
     };
 }
 
@@ -63,7 +120,7 @@ function Range($scope) {
  * Controller for the Info Box
  * @author ansel
  */
-function InfoBox($scope, $timeout) {
+function InfoBox($scope, $timeout, broadcast) {
     $scope.visible = false;
     $scope.keepInfoBox = function() {
         $timeout.cancel($scope.popupTimer);
@@ -71,19 +128,24 @@ function InfoBox($scope, $timeout) {
     $scope.hideInfoBox = function() {
         $scope.popupTimer = $timeout(function() {
             $scope.visible = false;
-        }, 250);
+            broadcast.send({ 'action': 'removeSelection' });
+        }, 200);
     };
     $scope.openPage = function() {
         window.open($scope.infoBox.pageUrl);
     };
     $scope.$on('handleBroadcast', function(event, data) {
-        $timeout.cancel($scope.popupTimer);
         switch (data.action) {
         case 'showInfoBox':
             $timeout.cancel($scope.popupTimer);
+            if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
             $scope.infoBox = data.infoBox;
             $scope.visible = true;
             $scope.$apply();
+            break;
+
+        case 'keepInfoBox':
+            $scope.keepInfoBox();
             break;
 
         case 'hideInfoBox':
@@ -116,16 +178,22 @@ function Tree($scope, rexster, broadcast) {
     $scope.updateRange = function() {
         broadcast.send({
             'action': 'updateRange',
-            'openRange': $scope.right - $scope.range * 1000 * 60,
-            'closeRange': $scope.right
+            'openRange': $scope.rightTime - $scope.range * 1000 * 60,
+            'closeRange': $scope.rightTime
         });
     };
 
     // scope constants
-    $scope.right = $scope.now();
+    $scope.rightTime = $scope.now();
     $scope.range = localStorage.range || 30;            // range in minutes
     $scope.offset = localStorage.offset || 0;         // right offset in px
     $scope.lineHeight = localStorage.lineHeight || 20;  // history line height in px
+
+    // keep track of scroll position
+    $scope.scrollTop = 0;
+    $('.container-fluid').on('scroll', function() {
+        $scope.scrollTop = this.scrollTop;
+    });
 
     $scope.updateRange();
 
@@ -141,9 +209,9 @@ function Tree($scope, rexster, broadcast) {
             break;
 
         case 'page':
-            $scope.right = $scope.right + ($scope.range * 1000 * 60) * data.pageAmount;
-            if ($scope.right > $scope.now()) {
-                $scope.right = $scope.now();
+            $scope.rightTime = $scope.rightTime + ($scope.range * 1000 * 60) * data.pageAmount;
+            if ($scope.rightTime > $scope.now()) {
+                $scope.rightTime = $scope.now();
             }
             $scope.updateRange();
             break;
@@ -373,7 +441,7 @@ function Tree($scope, rexster, broadcast) {
      */
     $scope.updateData = function() {
         // do search
-        rexster.search($scope.right - $scope.range * 1000 * 60, $scope.right, function(results) {
+        rexster.search($scope.rightTime - $scope.range * 1000 * 60, $scope.rightTime, function(results) {
             // check for persistent tabs
             rexster.search(function(persistentPages) {
                 $scope.tree.indexed = { devices: {} };
