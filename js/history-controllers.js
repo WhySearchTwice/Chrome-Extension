@@ -48,6 +48,7 @@ function Range($scope) {
 
         case 'moveSelection':
             $scope.moveSelection(data.selections);
+            $scope.$apply();
             break;
 
         case 'removeSelection':
