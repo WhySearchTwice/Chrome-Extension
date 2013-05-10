@@ -48,10 +48,12 @@
         </div>
     </div>
     <div class="range" ng-controller="Range" ng-mousemove="moveSelection($event)" ng-mouseout="removeSelection()">
-        <span class="open-range" ng-class="{fade: selection.left < 150}">{{openRange.date}}<strong>{{openRange.time}}</strong></span>
-        <span class="close-range" ng-class="{fade: selection.right < 150}">{{closeRange.date}}<strong>{{closeRange.time}}</strong></span>
-        <span class="range-selection-label" ng-show="selection" ng-style="selection.style">{{selection.date}}<strong>{{selection.time}}</strong></span>
-        <div class="range-selection-marker" ng-show="selection" ng-style="selection.style"></div>
+        <span class="open-range" ng-class="{fade: !left}">{{openRange.date}}<strong>{{openRange.time}}</strong></span>
+        <span class="close-range" ng-class="{fade: !right}">{{closeRange.date}}<strong>{{closeRange.time}}</strong></span>
+        <span class="range-selection-label" ng-show="selection.length > 0 && selection[0].time" ng-style="selection[0].style">{{selection[0].date}}<strong>{{selection[0].time}}</strong></span>
+        <div class="range-selection-marker" ng-show="selection.length > 0" ng-style="selection[0].style"></div>
+        <span class="range-selection-label" ng-show="selection.length > 1 && selection[1].time" ng-style="selection[1].style">{{selection[1].date}}<strong>{{selection[1].time}}</strong></span>
+        <div class="range-selection-marker" ng-show="selection.length > 1" ng-style="selection[1].style"></div>
     </div>
     <div class="container-fluid">
         <div class="row-fluid">

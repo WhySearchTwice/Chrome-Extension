@@ -36,7 +36,7 @@ angular.module('history.directives', [])
                  */
                 $scope.drawTree = function() {
                     $scope.pixelRatio = (window.innerWidth - $scope.offset) / (1000 * 60 * $scope.range);   // pixelRatio = effective canvas / range in ms
-                    $scope.leftTime = $scope.right - (1000 * 60 * $scope.range);                            // leftTime = now - range in ms
+                    $scope.leftTime = $scope.rightTime - (1000 * 60 * $scope.range);                            // leftTime = now - range in ms
                     if ($scope.layers.tree) {
                         $scope.layers.tree.removeChildren();
                     } else {
@@ -56,7 +56,7 @@ angular.module('history.directives', [])
                         height: y
                     });
                     $scope.stage.add($scope.layers.tree);
-                    if ($scope.right - $scope.now() > 60000) {
+                    if ($scope.rightTime - $scope.now() > 60000) {
                         $scope.layers.now.hide();
                     } else {
                         $scope.layers.now.show();
@@ -81,8 +81,8 @@ angular.module('history.directives', [])
                     y = (y || 0) + $scope.lineHeight;
                     var group = new Kinetic.Group();
                     if (subtree.node) {
-                        var start = $scope.pixelRatio * (subtree.node.pageOpenTime - $scope.leftTime);
-                        var end = subtree.node.pageCloseTime ? $scope.pixelRatio * (subtree.node.pageCloseTime - $scope.leftTime): window.innerWidth - $scope.offset;
+                        var start = $scope.locateTime(subtree.node.pageOpenTime);
+                        var end = subtree.node.pageCloseTime ? $scope.locateTime(subtree.node.pageCloseTime): window.innerWidth - $scope.offset;
                         var nodegroup = $scope.createNode(start, end, subtree.node);
                         group.setHeight(group.getHeight() + nodegroup.getHeight());
                         group.add(nodegroup);
@@ -130,11 +130,20 @@ angular.module('history.directives', [])
 
                     var duration = (end - start > 3 ? Math.round(end - start) : 2) + 0.5;
 
+                    // add transparent background
+                    group.add(new Kinetic.Rect({
+                        x: 0,
+                        y: 0,
+                        height: 15,
+                        width: duration
+                    }));
+                    // add duration line
                     group.add(new Kinetic.Line({
-                        points: [0, 15, duration, 15], // -2px for border between successors
+                        points: [0, 15, duration, 15],
                         stroke: '#000',
                         strokeWidth: 1
                     }));
+                    // add endpoints
                     group.add(new Kinetic.Line({
                         points: [0.5, 12, 0.5, 17],
                         stroke: '#000',
@@ -178,6 +187,7 @@ angular.module('history.directives', [])
                         broadcast.send({
                             'action': 'showInfoBox',
                             'infoBox': {
+                                'id': node.id,
                                 'url': node.pageUrl,
                                 'style': {
                                     'left': (hasSpace ? event.pageX : window.innerWidth - 320) + 'px',
@@ -185,6 +195,25 @@ angular.module('history.directives', [])
                                 }
                             }
                         });
+
+                        // show range selections
+                        var data = {
+                            'action': 'moveSelection',
+                            'selections': []
+                        };
+                        if (node.pageOpenTime > $scope.leftTime) {
+                            data.selections.push({
+                                'selection': node.pageOpenTime,
+                                'pageX': $scope.locateTime(node.pageOpenTime)
+                            });
+                        }
+                        if (node.pageCloseTime < $scope.rightTime) {
+                            data.selections.push({
+                                'selection': node.pageCloseTime,
+                                'pageX': $scope.locateTime(node.pageCloseTime)
+                            });
+                        }
+                        broadcast.send(data);
                     });
                     group.on('mouseout', function() {
                         broadcast.send({ 'action': 'hideInfoBox' });
@@ -192,6 +221,15 @@ angular.module('history.directives', [])
 
                     return group;
                 };
+
+                /**
+                 * Returns the pixel position for a timestamp
+                 * @author ansel
+                 * @return {int} Pixel position for timestamp
+                 */
+                $scope.locateTime = function(timestamp) {
+                    return $scope.pixelRatio * (timestamp - $scope.leftTime);
+                }
 
                 /**
                  * Toggles the hidden state of a group
