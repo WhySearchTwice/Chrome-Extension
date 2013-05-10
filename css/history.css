@@ -1,18 +1,4 @@
 @font-face {
-  font-family: 'Ubuntu Mono';
-  font-style: normal;
-  font-weight: 400;
-  src: local('Ubuntu Mono'), local('UbuntuMono-Regular'), url(/font/UbuntuMono-Regular.ttf) format('truetype');
-}
-
-@font-face {
-  font-family: 'Ubuntu Mono';
-  font-style: normal;
-  font-weight: 700;
-  src: local('Ubuntu Mono Bold'), local('UbuntuMono-Bold'), url(/font/UbuntuMono-Bold.ttf) format('truetype');
-}
-
-@font-face {
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 400;
@@ -206,7 +192,7 @@ body {
     width: 260px;
 }
 
-    #infoBox::before {
+    /*#infoBox::before {
         content: "";
         display: block;
         height: 25px;
@@ -214,7 +200,7 @@ body {
         position: absolute;
         top: -20px;
         width: 310px;
-    }
+    }*/
 
     #infoBox a.pageUrl {
         display: block;
@@ -232,12 +218,28 @@ body {
 
 .popIn-setup,
 .popOut-setup.popOut-start {
-    margin-top: -10px;
+    margin-top: 10px;
     opacity: 0;
 }
 
 .popIn-setup.popIn-start,
 .popOut-setup {
     margin-top: 0;
+    opacity: 1;
+}
+
+.fadeIn-setup,
+.fadeOut-setup {
+    -webkit-transition-property: opacity;
+    -webkit-transition-duration: .2s;
+}
+
+.fadeIn-setup,
+.fadeOut-setup.fadeOut-start {
+    opacity: 0;
+}
+
+.fadeIn-setup.fadeIn-start,
+.fadeOut-setup {
     opacity: 1;
 }
