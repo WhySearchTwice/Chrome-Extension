@@ -189,8 +189,8 @@ angular.module('history.directives', [])
                                 'id': node.id,
                                 'url': node.pageUrl,
                                 'style': {
-                                    'left': (hasSpace ? event.pageX : window.innerWidth - 320) + 'px',
-                                    'top': this.getAbsolutePosition().y - document.querySelector('.container-fluid').scrollTop + 71 + 15 + 'px' // 71 for header, 15 for node height
+                                    'left': (hasSpace ? event.pageX - 20 : window.innerWidth - 340) + 'px',
+                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 15 + 'px' // 71 for header, 15 for node height
                                 }
                             }
                         });
@@ -227,7 +227,7 @@ angular.module('history.directives', [])
                  * @return {int} Pixel position for timestamp
                  */
                 $scope.locateTime = function(timestamp) {
-                    return $scope.pixelRatio * (timestamp - $scope.leftTime);
+                    return Math.round($scope.pixelRatio * (timestamp - $scope.leftTime));
                 }
 
                 /**
