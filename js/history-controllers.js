@@ -374,6 +374,9 @@ function Tree($scope, rexster, broadcast) {
                 pageView.builtKey = ['root', pageView.pageOpenTime];
             } else {
                 var ancestorGroup = $scope.tree.getNode(ancestor);
+                if (!ancestorGroup[relationship]) {
+                    ancestorGroup[relationship] = {};
+                }
                 ancestorGroup[relationship][pageView.pageOpenTime] = { node: pageView };
                 if (pageView.builtKey) { $scope.tree.removeNode(pageView); }
                 pageView.builtKey = ancestor.builtKey.concat([relationship, pageView.pageOpenTime]);
