@@ -187,6 +187,7 @@ function Tree($scope, rexster, broadcast) {
     $scope.range = localStorage.range || 30;            // range in minutes
     $scope.offset = localStorage.offset || 0;         // right offset in px
     $scope.lineHeight = localStorage.lineHeight || 20;  // history line height in px
+    $scope.scrollTop = 0;
 
     $scope.updateRange();
 

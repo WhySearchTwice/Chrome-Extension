@@ -192,7 +192,7 @@ body {
     width: 260px;
 }
 
-    #infoBox::before {
+    /*#infoBox::before {
         content: "";
         display: block;
         height: 25px;
@@ -200,7 +200,7 @@ body {
         position: absolute;
         top: -20px;
         width: 310px;
-    }
+    }*/
 
     #infoBox a.pageUrl {
         display: block;

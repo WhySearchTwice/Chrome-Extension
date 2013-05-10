@@ -183,7 +183,6 @@ angular.module('history.directives', [])
                     group.on('mouseover', function(event) {
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > 20;
-
                         broadcast.send({
                             'action': 'showInfoBox',
                             'infoBox': {
@@ -191,7 +190,7 @@ angular.module('history.directives', [])
                                 'url': node.pageUrl,
                                 'style': {
                                     'left': (hasSpace ? event.pageX : window.innerWidth - 320) + 'px',
-                                    'top': event.pageY + 10 + 'px'
+                                    'top': this.getAbsolutePosition().y - document.querySelector('.container-fluid').scrollTop + 71 + 15 + 'px' // 71 for header, 15 for node height
                                 }
                             }
                         });
@@ -258,5 +257,4 @@ angular.module('history.directives', [])
             controller: Tree
         };
     })
-
 ;
