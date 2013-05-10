@@ -32,6 +32,22 @@ angular.module('history.services', [], function($provide) {
      * @author ansel
      */
     $provide.factory('rexster', ['$http', 'background', function($http, background) {
+        var searched = [];
+
+        /**
+         * Sort function for searched
+         * @author ansel
+         *
+         * @param  {Array} a compare this
+         * @param  {Array} b to this
+         * @return {Int}     Where a should be relative to b
+         */
+        function byOpenRange(a, b) {
+            if (a[0] > b[0]) { return 1; }
+            if (a[0] < b[0]) { return -1; }
+            return 0;
+        }
+
         return {
             /**
              * Search the graph with Rexster
@@ -61,6 +77,46 @@ angular.module('history.services', [], function($provide) {
                         params = {};
                     }
                     if (openRange && closeRange) {
+                        console.log($.extend({}, searched));
+                        console.log('OPEN: ' + openRange);
+                        console.log('CLOSE: ' + closeRange);
+                        if (searched.length) {
+                            // there have been previous searches, adjust length
+                            var isOpenInRange,
+                                isCloseInRange,
+                                isInsideRange;
+                            for (var i = 0, l = searched.length; i < l; i++) {
+                                isOpenInRange = openRange >= searched[i][0] && openRange <= searched[i][1];
+                                isCloseInRange = closeRange >= searched[i][0] && closeRange <= searched[i][1];
+                                isInsideRange = openRange <= searched[i][0] && closeRange >= searched[i][1];
+                                if (isOpenInRange && isCloseInRange) { return []; }
+                                else if (isOpenInRange) {
+                                    openRange = searched[i][1];
+                                    searched[i][1] = closeRange;
+                                }
+                                else if (isCloseInRange) {
+                                    closeSearchedRange = closeRange = searched[i][0];
+                                    searched[i][0] = openRange;
+                                }
+                                else if (isInsideRange) {
+                                    searched.push([openRange, closeRange]);
+                                    arguments.callee(openRange, searched[i][0], params, callback);
+                                    openRange = searched[i][1];
+                                    searched.splice(i, 1);
+                                    i--;
+                                    l--;
+                                }
+                            }
+                        } else {
+                            searched.push([openRange, closeRange]);
+                        }
+                        searched.sort(byOpenRange);
+                        console.log($.extend({}, searched));
+
+                        console.log('ADJUSTED:');
+                        console.log('OPEN: ' + openRange);
+                        console.log('CLOSE: ' + closeRange);
+
                         var encoded = [];
                         params = params || {};
                         params.userGuid = localStorage.userGuid || params.userGuid;

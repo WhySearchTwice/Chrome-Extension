@@ -317,7 +317,7 @@ function Tree($scope, rexster, broadcast) {
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
-                //if (pageView.pageUrl === 'chrome://newtab/') { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
+                if (!pageView.deviceGuid/*pageView.pageUrl === 'chrome://newtab/'*/) { pageViews.splice(i, 1); i--; l--; } // ToDo: remove this hack
 
                 // get or create device
                 var device = $scope.tree.getDevice(pageView.deviceGuid);
