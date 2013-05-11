@@ -136,12 +136,14 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
     };
     $scope.$on('handleBroadcast', function(event, data) {
         switch (data.action) {
-        case 'showInfoBox':
+            case 'showInfoBox':
             $timeout.cancel($scope.popupTimer);
             if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
             $scope.infoBox = data.infoBox;
             $scope.visible = true;
             $scope.$apply();
+
+            // Uses scrape service to get the new image.
             var scrapePromise = scrape.get(data.infoBox.url);
             scrapePromise.then(function(url) {
                 if(url) {

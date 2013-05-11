@@ -25,7 +25,12 @@ angular.module('history.services', [], function($provide) {
             get: function(url) {
                 if (url !== "chrome://newtab/") {
                     var promise = $http.get(url).then(function(response) {
-                        console.log(response);
+
+                        // This is the xml returned from the get request to the external website.
+                        var html = response.data;
+                        console.log(html);
+
+                        // This is just hardcoded for now while we figure out the xml parsing thing.
                         return ("http://i.imgur.com/rK7qRbE.jpg");
                     });
                     return promise;
