@@ -141,13 +141,12 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
             if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
             $scope.infoBox = data.infoBox;
             $scope.visible = true;
-            console.log($scope.infoBox.pageUrl);
-            var scrapePromise = scrape.get($scope.infoBox.pageUrl);
+            $scope.$apply();
+            $scope.console.log(data.infoBox);
+            var scrapePromise = scrape.get(data.infoBox.pageUrl);
             scrapePromise.then(function(url) {
                 $scope.infoBox.pageUrl = url;
             });
-            $scope.$apply();
-            window.console.log($scope.infoBox);
             break;
 
         case 'keepInfoBox':
