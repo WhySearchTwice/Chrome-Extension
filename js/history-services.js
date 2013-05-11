@@ -16,6 +16,26 @@ angular.module('history.services', [], function($provide) {
     });
 
     /**
+     * Sends out a get request to specified webpage and then iterates through
+     * all images to find one that best represents the given page.
+     * @author Chris
+     */
+    $provide.factory('scrape', ['$http', function($http) {
+        return {
+            get: function(url) {
+                return $http
+                    .get(url)
+                    .then(function(response) {
+                        var html = response.responseText;
+                        console.log(html);
+                        return ("http://i.imgur.com/rK7qRbE.jpg");
+                    })
+                ;
+            }
+        };
+    }]);
+
+    /**
      * Sends broadcast messages between scopes
      * @author ansel
      */

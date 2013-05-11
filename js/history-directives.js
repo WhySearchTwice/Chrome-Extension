@@ -188,6 +188,7 @@ angular.module('history.directives', [])
                             'infoBox': {
                                 'id': node.id,
                                 'url': node.pageUrl,
+                                'picUrl': "/img/ajax_loader.gif",
                                 'style': {
                                     'left': (hasSpace ? event.pageX - 20 : window.innerWidth - 340) + 'px',
                                     'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 15 + 'px' // 71 for header, 15 for node height

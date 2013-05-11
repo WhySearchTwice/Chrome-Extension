@@ -120,7 +120,7 @@ function Range($scope) {
  * Controller for the Info Box
  * @author ansel
  */
-function InfoBox($scope, $timeout, broadcast) {
+function InfoBox($scope, $timeout, broadcast, scrape) {
     $scope.visible = false;
     $scope.keepInfoBox = function() {
         $timeout.cancel($scope.popupTimer);
@@ -141,7 +141,13 @@ function InfoBox($scope, $timeout, broadcast) {
             if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
             $scope.infoBox = data.infoBox;
             $scope.visible = true;
+            console.log($scope.infoBox.pageUrl);
+            var scrapePromise = scrape.get($scope.infoBox.pageUrl);
+            scrapePromise.then(function(url) {
+                $scope.infoBox.pageUrl = url;
+            });
             $scope.$apply();
+            window.console.log($scope.infoBox);
             break;
 
         case 'keepInfoBox':
