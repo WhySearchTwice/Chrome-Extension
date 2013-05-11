@@ -23,14 +23,18 @@ angular.module('history.services', [], function($provide) {
     $provide.factory('scrape', ['$http', function($http) {
         return {
             get: function(url) {
-                return $http
-                    .get(url)
-                    .then(function(response) {
-                        var html = response.responseText;
-                        console.log(html);
-                        return ("http://i.imgur.com/rK7qRbE.jpg");
-                    })
-                ;
+                if (url !== "chrome://newtab/") {
+                    return $http
+                        .get(url)
+                        .then(function(response) {
+                            var html = response.responseText;
+                            console.log(html);
+                            return ("http://i.imgur.com/rK7qRbE.jpg");
+                        })
+                    ;
+                } else {
+                    return;
+                }
             }
         };
     }]);

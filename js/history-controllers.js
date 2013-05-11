@@ -142,10 +142,11 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
             $scope.infoBox = data.infoBox;
             $scope.visible = true;
             $scope.$apply();
-            $scope.console.log(data.infoBox);
-            var scrapePromise = scrape.get(data.infoBox.pageUrl);
+            var scrapePromise = scrape.get(data.infoBox.url);
             scrapePromise.then(function(url) {
-                $scope.infoBox.pageUrl = url;
+                if(url) {
+                    $scope.infoBox.url = url;
+                }
             });
             break;
 
