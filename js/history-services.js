@@ -24,15 +24,11 @@ angular.module('history.services', [], function($provide) {
         return {
             get: function(url) {
                 if (url !== "chrome://newtab/") {
-                    return $http
-                        .get(url)
-                        .success(function(response) {
-                            // Doesn't seem to be getting here ever.
-                            var html = response.responseText;
-                            console.log(html);
-                            return ("http://i.imgur.com/rK7qRbE.jpg");
-                        })
-                    ;
+                    var promise = $http.get(url).then(function(response) {
+                        console.log(response);
+                        return ("http://i.imgur.com/rK7qRbE.jpg");
+                    });
+                    return promise;
                 } else {
                     return;
                 }

@@ -145,7 +145,8 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
             var scrapePromise = scrape.get(data.infoBox.url);
             scrapePromise.then(function(url) {
                 if(url) {
-                    $scope.infoBox.url = url;
+                    $scope.infoBox.picUrl = url;
+                    window.console.log($scope.infoBox);
                 }
             });
             break;
