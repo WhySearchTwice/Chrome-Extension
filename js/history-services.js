@@ -26,7 +26,8 @@ angular.module('history.services', [], function($provide) {
                 if (url !== "chrome://newtab/") {
                     return $http
                         .get(url)
-                        .then(function(response) {
+                        .success(function(response) {
+                            // Doesn't seem to be getting here ever.
                             var html = response.responseText;
                             console.log(html);
                             return ("http://i.imgur.com/rK7qRbE.jpg");
