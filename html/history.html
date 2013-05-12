@@ -47,7 +47,7 @@
             </div>
         </div>
     </div>
-    <div class="range" ng-controller="Range" ng-mousemove="moveSelection($event)" ng-mouseout="removeSelection()">
+    <div class="range" ng-cloak ng-controller="Range" ng-mousemove="moveSelection($event)" ng-mouseout="removeSelection()">
         <span class="open-range" ng-class="{fade: !left}">{{openRange.date}}<strong>{{openRange.time}}</strong></span>
         <span class="close-range" ng-class="{fade: !right}">{{closeRange.date}}<strong>{{closeRange.time}}</strong></span>
         <span class="range-selection-label" ng-show="selection.length > 0 && selection[0].time" ng-style="selection[0].style">{{selection[0].date}}<strong>{{selection[0].time}}</strong></span>

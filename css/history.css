@@ -59,6 +59,10 @@ body {
     left: -9001px;
 }
 
+.navbar .container-fluid {
+    padding: 0;
+}
+
 .navbar-inner {
     background-color: #fff;
     background-image: none;
