@@ -52,6 +52,15 @@ angular.module('history.directives', [])
                     });
                 });
 
+                // track now time, check every minute
+                setInterval(function() {
+                    if ($scope.rightTime + 2 * 1000 * 60 > $scope.now()) {
+                        // if we are less than 2 minutes from now, track
+                        $scope.rightTime = $scope.now();
+                        $scope.$apply();
+                    }
+                }, 1 * 1000 * 60);
+
                 /**
                  * Draws the entire tree
                  * @author ansel
