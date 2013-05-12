@@ -28,18 +28,12 @@ angular.module('history.directives', [])
                     $scope.stage.setY(0);
                 });
                 $scope.stage.on('dragend', function(event) {
-                    console.log((event.pageX - $scope.dragging.x) * $scope.pixelRatio);
-                    //console.log(Math.round((event.pageX - $scope.dragging.x) * $scope.pixelRatio));
-                    $scope.rightTime += Math.round((event.pageX - $scope.dragging.x) * $scope.pixelRatio);
-                    $scope.stage.setX(0);
-                    $scope.$apply();
-                    //console.log($scope.rightTime);
-                    delete $scope.dragging;
                     broadcast.send({
-                        'action': 'updateRange',
-                        'openRange': $scope.rightTime - $scope.range * 1000 * 60,
-                        'closeRange': $scope.rightTime
+                        'action': 'page',
+                        'pageAmount': (event.pageX - $scope.dragging.x) / $scope.viewportWidth
                     });
+                    $scope.stage.setX(0);
+                    delete $scope.dragging;
                 });
 
                 $scope.layers = {};

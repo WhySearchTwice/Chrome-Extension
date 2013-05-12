@@ -260,3 +260,22 @@ body {
 .fadeOut-setup {
     opacity: 1;
 }
+
+/* hint.css modifications */
+.hint:hover:before,
+.hint:hover:after,
+[data-hint]:hover:before,
+[data-hint]:hover:after {
+    transition-delay:.5s;
+}
+
+.navbar-controls .hint--bottom:before,
+.navbar-controls .hint--bottom:after {
+    left: auto;
+    right: 50%;
+}
+
+.navbar-controls .hint--bottom:after {
+    margin-left: 0;
+    margin-right: -18px;
+}

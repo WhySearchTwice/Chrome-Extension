@@ -6,6 +6,11 @@
  * @author ansel
  */
 function Controls($scope, broadcast) {
+    $scope.$on('handleBroadcast', function(event, data) {
+        if (data.action === 'updateRange') {
+            $scope.range = data.rangeDuration;
+        }
+    });
     $scope.zoom = function(timeDelta) {
         broadcast.send({
             'action': 'zoom',
@@ -206,7 +211,7 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                                 largestArea = this.width * this.height;
                                 $scope.$apply();
                             }
-                        }
+                        };
                         image.src = $scope.infoBox.images[i];
                     }
                 }
@@ -245,18 +250,20 @@ function Tree($scope, rexster, broadcast) {
      * @author ansel
      */
     $scope.updateRange = function() {
+        console.log($scope.rightTime - $scope.range * 1000 * 60);
         broadcast.send({
             'action': 'updateRange',
+            'rangeDuration': $scope.range,
             'openRange': $scope.rightTime - $scope.range * 1000 * 60,
             'closeRange': $scope.rightTime
         });
     };
 
     // scope constants
-    $scope.rightTime = $scope.now();
-    $scope.range = localStorage.range || 30;            // range in minutes
-    $scope.offset = localStorage.offset || getScrollBarWidth();         // right offset in px
-    $scope.lineHeight = localStorage.lineHeight || 20;  // history line height in px
+    $scope.rightTime = parseInt(localStorage.rightTime, 10) || $scope.now();
+    $scope.range = parseInt(localStorage.range, 10) || 30;  // range in minutes
+    $scope.offset = getScrollBarWidth();
+    $scope.lineHeight = parseInt(localStorage.lineHeight, 10) || 20;  // history line height in px
 
     // keep track of scroll position
     $scope.scrollTop = 0;
@@ -278,7 +285,7 @@ function Tree($scope, rexster, broadcast) {
             break;
 
         case 'page':
-            $scope.rightTime = $scope.rightTime + ($scope.range * 1000 * 60) * data.pageAmount;
+            $scope.rightTime = data.pageAmount ? $scope.rightTime + ($scope.range * 1000 * 60) * data.pageAmount : $scope.now();
             if ($scope.rightTime > $scope.now()) {
                 $scope.rightTime = $scope.now();
             }
@@ -383,7 +390,7 @@ function Tree($scope, rexster, broadcast) {
          * @return {Array}           Array of pageViews with keys
          */
         index: function(pageViews) {
-            pageView = pageViews || [];
+            pageViews = pageViews || [];
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
@@ -495,7 +502,6 @@ function Tree($scope, rexster, broadcast) {
 
             // make sure pageViews are indexed first
             pageViews = $scope.tree.index(pageViews);
-            console.log(pageViews.slice(0));
 
             // create build queue: { [vertexId]: [pageView], ... }
             var pageViewIds = {};
@@ -558,9 +564,9 @@ function Tree($scope, rexster, broadcast) {
             $scope.tree.build(results);
         });
         // check for persistent tabs
-        rexster.search(function(persistentPages) {
+        /*rexster.search(function(persistentPages) {
             $scope.tree.build(persistentPages);
-        });
+        });*/
     };
 
     $scope.updateData();
