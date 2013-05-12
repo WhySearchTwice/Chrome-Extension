@@ -134,21 +134,43 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
     $scope.openPage = function() {
         window.open($scope.infoBox.pageUrl);
     };
+    $scope.checkPosition = function() {
+        var $infoBox = $('#infoBox'),
+            style = $scope.infoBox.style;
+        if ($infoBox.height() + style.top > window.innerHeight - 20) {
+            style.bottom = window.innerHeight - style.top + 15;
+            delete style.top;
+            $scope.$apply();
+        }
+    };
     $scope.$on('handleBroadcast', function(event, data) {
         switch (data.action) {
-            case 'showInfoBox':
+        case 'showInfoBox':
             $timeout.cancel($scope.popupTimer);
             if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
             $scope.infoBox = data.infoBox;
             $scope.visible = true;
-            $scope.$apply();
+            $scope.checkPosition();
 
             // Uses scrape service to get the new image.
-            var scrapePromise = scrape.get(data.infoBox.url);
-            scrapePromise.then(function(url) {
-                if(url) {
-                    $scope.infoBox.picUrl = url;
-                    window.console.log($scope.infoBox);
+            scrape.get(data.infoBox.url, function(data) {
+                for (var field in data) {
+                    $scope.infoBox[field] = data[field];
+                }
+                if ($scope.infoBox.images) {
+                    var image,
+                        largestArea = 0;
+                    for (var i = 0, l = $scope.infoBox.images.length; i < l; i++) {
+                        var image = new Image();
+                        image.onload = function() {
+                            if (this.width * this.height > largestArea) {
+                                $scope.infoBox.featuredImage = this.src;
+                                largestArea = this.width * this.height;
+                                $scope.$apply();
+                            }
+                        }
+                        image.src = $scope.infoBox.images[i];
+                    }
                 }
             });
             break;
@@ -195,7 +217,7 @@ function Tree($scope, rexster, broadcast) {
     // scope constants
     $scope.rightTime = $scope.now();
     $scope.range = localStorage.range || 30;            // range in minutes
-    $scope.offset = localStorage.offset || 0;         // right offset in px
+    $scope.offset = localStorage.offset || getScrollBarWidth() + 1;         // right offset in px
     $scope.lineHeight = localStorage.lineHeight || 20;  // history line height in px
 
     // keep track of scroll position
@@ -504,3 +526,29 @@ function Tree($scope, rexster, broadcast) {
 
     $scope.updateData();
 }
+
+function getScrollBarWidth () {
+    var inner = document.createElement('p');
+    inner.style.width = '100%';
+    inner.style.height = '200px';
+
+    var outer = document.createElement('div');
+    outer.style.position = 'absolute';
+    outer.style.top = '0px';
+    outer.style.left = '0px';
+    outer.style.visibility = 'hidden';
+    outer.style.width = '200px';
+    outer.style.height = '150px';
+    outer.style.overflow = 'hidden';
+    outer.appendChild(inner);
+
+    document.body.appendChild (outer);
+    var w1 = inner.offsetWidth;
+    outer.style.overflow = 'scroll';
+    var w2 = inner.offsetWidth;
+    if (w1 === w2) { w2 = outer.clientWidth; }
+
+    document.body.removeChild (outer);
+
+    return (w1 - w2);
+};

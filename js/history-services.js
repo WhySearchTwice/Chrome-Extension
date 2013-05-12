@@ -18,24 +18,84 @@ angular.module('history.services', [], function($provide) {
     /**
      * Sends out a get request to specified webpage and then iterates through
      * all images to find one that best represents the given page.
-     * @author Chris
+     * @author chris, ansel
      */
     $provide.factory('scrape', ['$http', function($http) {
+        /**
+         * Strips HTML tags from an HTML STring
+         * @author ansel
+         *
+         * @param  {String} htmlString Unsafe HTML String
+         *
+         * @return {String}            Safe non-HTML String
+         */
+        function stripTags(htmlString) {
+            return htmlString.replace(/<(?:.|\n)*?>/gm, '');
+        }
+
+        /**
+         * Gets the HTML String contents of any tag in a given HTML String
+         * @author ansel
+         *
+         * @param  {String} html Target HTML
+         * @param  {String} tag  Target tag
+         * @param  {String} attr Optional attribute to get the contents of
+         *
+         * @return {Array}       Array of matches. One for each tag instance
+         */
+        function getTagContents(html, tag, attr) {
+            var search,
+                match,
+                results = [];
+
+            if (attr) {
+                search = new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'gi');
+            } else {
+                search = new RegExp('<' + tag + '[^>]*>([\\S\\s]*)<\\/' + tag + '>', 'gi');
+            }
+
+            while (match = search.exec(html)) {
+                results.push(match[1]);
+            }
+            return results;
+        }
+
         return {
-            get: function(url) {
-                if (url !== "chrome://newtab/") {
-                    var promise = $http.get(url).then(function(response) {
-
+            get: function(url, callback) {
+                if (!url.match(/^chrome:\/\//)) {
+                    url = url.replace(/^https/, 'http'); // remove HTTPS so requests don't get rejected
+                    $http.get(url).then(function(response) {
                         // This is the xml returned from the get request to the external website.
-                        var html = response.data;
-                        console.log(html);
+                        var html = response.data,
+                            data = {},
+                            results;
 
-                        // This is just hardcoded for now while we figure out the xml parsing thing.
-                        return ("http://i.imgur.com/rK7qRbE.jpg");
+                        // get title
+                        results = getTagContents(html, 'h1');
+                        if (results.length) {
+                            data.title = stripTags(results[0]).substr(0, 140);
+                        }
+
+                        // get images
+                        results = getTagContents(html, 'img', 'src');
+                        if (results.length) {
+                            var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
+                                protocolRelativeUrl = url.match(/^.*:/)[0] + '//',
+                                relativeUrl = url.replace(/[^\/]*$/, '');
+                            for (var i = 0, l = results.length; i < l; i++) {
+                                if (results[i].match(/^\/\//)) {
+                                    results[i] = results[i].replace(/^\/\//, protocolRelativeUrl);
+                                } else if (results[i].match(/^\//)) {
+                                    results[i] = results[i].replace(/^\//, domainRelativeUrl);
+                                } else if (!results[i].match(/^.*:\/\//)) {
+                                    results[i] = relativeUrl + results[i];
+                                }
+                            }
+                            data.images = results;
+                        }
+
+                        callback(data);
                     });
-                    return promise;
-                } else {
-                    return;
                 }
             }
         };
@@ -103,9 +163,6 @@ angular.module('history.services', [], function($provide) {
                         params = {};
                     }
                     if (openRange && closeRange) {
-                        console.log($.extend({}, searched));
-                        console.log('OPEN: ' + openRange);
-                        console.log('CLOSE: ' + closeRange);
                         if (searched.length) {
                             // there have been previous searches, adjust length
                             var isOpenInRange,
@@ -137,11 +194,6 @@ angular.module('history.services', [], function($provide) {
                             searched.push([openRange, closeRange]);
                         }
                         searched.sort(byOpenRange);
-                        console.log($.extend({}, searched));
-
-                        console.log('ADJUSTED:');
-                        console.log('OPEN: ' + openRange);
-                        console.log('CLOSE: ' + closeRange);
 
                         var encoded = [];
                         params = params || {};

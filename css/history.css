@@ -177,9 +177,10 @@ body {
         width: 1px;
     }
 
-.container-fluid {
+body > .container-fluid {
     height: calc(100% - 71px);
     overflow-x: hidden;
+    overflow-y: scroll;
     padding: 0;
 }
 
@@ -191,6 +192,12 @@ body {
     position: absolute;
     width: 260px;
 }
+
+    #infoBox h3 {
+        font-size: 18px;
+        line-height: 28px;
+        margin: 0;
+    }
 
     /*#infoBox::before {
         content: "";
@@ -208,6 +215,10 @@ body {
         max-width: 260px;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    #infoBox img {
+        margin-top: 20px;
     }
 
 .popIn-setup,

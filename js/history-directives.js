@@ -56,11 +56,6 @@ angular.module('history.directives', [])
                         height: y
                     });
                     $scope.stage.add($scope.layers.tree);
-                    if ($scope.rightTime - $scope.now() > 60000) {
-                        $scope.layers.now.hide();
-                    } else {
-                        $scope.layers.now.show();
-                    }
                 };
 
                 $scope.$watch('tree.built', $scope.drawTree, true);
@@ -188,10 +183,9 @@ angular.module('history.directives', [])
                             'infoBox': {
                                 'id': node.id,
                                 'url': node.pageUrl,
-                                'picUrl': "/img/ajax_loader.gif",
                                 'style': {
-                                    'left': (hasSpace ? event.pageX - 20 : window.innerWidth - 340) + 'px',
-                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 15 + 'px' // 71 for header, 15 for node height
+                                    'left': (hasSpace ? event.pageX - 20 : window.innerWidth - 340),
+                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 15 // 71 for header, 15 for node height
                                 }
                             }
                         });
@@ -245,15 +239,6 @@ angular.module('history.directives', [])
                     parent.setOpacity(parent.getOpacity() === 0.2 ? 1 : 0.2);
                     $scope.stage.draw();
                 };
-
-                // draw now line
-                $scope.layers.now = new Kinetic.Layer();
-                $scope.layers.now.add(new Kinetic.Line({
-                    points: [window.innerWidth - $scope.offset - 1, 0, window.innerWidth - $scope.offset, 10000],
-                    stroke: 'red',
-                    strokeWidth: 2
-                }));
-                $scope.stage.add($scope.layers.now);
             },
             controller: Tree
         };
