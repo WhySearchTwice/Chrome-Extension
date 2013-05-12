@@ -287,7 +287,7 @@ function Tree($scope, rexster, broadcast) {
             break;
 
         case 'page':
-            $scope.rightTime = data.pageAmount ? $scope.rightTime + ($scope.range * 1000 * 60) * data.pageAmount : $scope.now();
+            $scope.rightTime = data.pageAmount ? Math.round($scope.rightTime + ($scope.range * 1000 * 60) * data.pageAmount) : $scope.now();
             if ($scope.rightTime > $scope.now()) {
                 $scope.rightTime = $scope.now();
             }

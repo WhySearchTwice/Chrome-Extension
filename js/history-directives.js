@@ -30,9 +30,10 @@ angular.module('history.directives', [])
                 $scope.stage.on('dragend', function(event) {
                     broadcast.send({
                         'action': 'page',
-                        'pageAmount': (event.pageX - $scope.dragging.x) / $scope.viewportWidth
+                        'pageAmount': -(event.pageX - $scope.dragging.x) / $scope.viewportWidth
                     });
                     $scope.stage.setX(0);
+                    $scope.$apply();
                     delete $scope.dragging;
                 });
 
