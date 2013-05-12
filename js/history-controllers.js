@@ -9,6 +9,7 @@ function Controls($scope, broadcast) {
     $scope.$on('handleBroadcast', function(event, data) {
         if (data.action === 'updateRange') {
             $scope.range = data.rangeDuration;
+            $('.navbar-controls .disable-now').prop('disabled', data.closeRange + 2 * 1000 * 60 > data.now)
         }
     });
     $scope.zoom = function(timeDelta) {
@@ -255,7 +256,8 @@ function Tree($scope, rexster, broadcast) {
             'action': 'updateRange',
             'rangeDuration': $scope.range,
             'openRange': $scope.rightTime - $scope.range * 1000 * 60,
-            'closeRange': $scope.rightTime
+            'closeRange': $scope.rightTime,
+            'now': $scope.now()
         });
     };
 
