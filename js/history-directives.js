@@ -11,9 +11,37 @@ angular.module('history.directives', [])
                 // create stage
                 $scope.stage = new Kinetic.Stage({
                     container: 'container',
+                    draggable: true,
                     width: window.innerWidth,
                     height: window.innerHeight - $('.navbar').outerHeight()
                 });
+
+                // handle click and drag
+                $scope.stage.on('dragstart', function(event) {
+                    $scope.dragging = {
+                        'x': event.pageX,
+                        'y': event.pageY
+                    };
+                });
+                $scope.stage.on('dragmove', function(event) {
+                    // don't allow vertical panning
+                    $scope.stage.setY(0);
+                });
+                $scope.stage.on('dragend', function(event) {
+                    console.log((event.pageX - $scope.dragging.x) * $scope.pixelRatio);
+                    //console.log(Math.round((event.pageX - $scope.dragging.x) * $scope.pixelRatio));
+                    $scope.rightTime += Math.round((event.pageX - $scope.dragging.x) * $scope.pixelRatio);
+                    $scope.stage.setX(0);
+                    $scope.$apply();
+                    //console.log($scope.rightTime);
+                    delete $scope.dragging;
+                    broadcast.send({
+                        'action': 'updateRange',
+                        'openRange': $scope.rightTime - $scope.range * 1000 * 60,
+                        'closeRange': $scope.rightTime
+                    });
+                });
+
                 $scope.layers = {};
 
                 $scope.viewportWidth = $window.innerWidth;
@@ -60,6 +88,7 @@ angular.module('history.directives', [])
 
                 $scope.$watch('tree.built', $scope.drawTree, true);
                 $scope.$watch('[range, rightTime]', function() {
+                    console.log('moved');
                     $scope.drawTree();
                     $scope.updateData();
                 }, true);
@@ -183,7 +212,7 @@ angular.module('history.directives', [])
                     })(node.pageUrl));
 
                     group.on('mouseover', function(event) {
-                        $(document.body).css({ 'cursor': 'pointer' });
+                        $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > 20;
                         broadcast.send({
@@ -218,7 +247,7 @@ angular.module('history.directives', [])
                         broadcast.send(data);
                     });
                     group.on('mouseout', function() {
-                        $(document.body).css({ 'cursor': 'default' });
+                        $('#tree-container').css({ 'cursor': 'ew-resize' });
                         broadcast.send({ 'action': 'hideInfoBox' });
                     });
 
@@ -235,6 +264,13 @@ angular.module('history.directives', [])
                 };
             },
             controller: Tree
+        };
+    })
+    .directive('ngKeyup', function() {
+        return function(scope, elm, attrs) {
+            elm.bind('keyup', function(event) {
+                scope.$apply(scope.onKeyup(event));
+            });
         };
     })
 ;

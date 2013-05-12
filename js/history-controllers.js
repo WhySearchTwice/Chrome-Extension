@@ -24,6 +24,44 @@ function Controls($scope, broadcast) {
 }
 
 /**
+ * Controller for the keyboard shortcuts
+ * @author ansel
+ */
+function Hotkeys($scope, broadcast) {
+    $scope.onKeyup = function(event) {
+        switch (event.keyCode) {
+        case 37:
+            broadcast.send({
+                'action': 'page',
+                'pageAmount': -0.5
+            });
+            break;
+        case 39:
+            broadcast.send({
+                'action': 'page',
+                'pageAmount': 0.5
+            });
+            break;
+        }
+    };
+    $scope.zoom = function(timeDelta) {
+        broadcast.send({
+            'action': 'zoom',
+            'timeDelta': timeDelta
+        });
+    };
+    $scope.page = function(pageAmount) {
+        broadcast.send({
+            'action': 'page',
+            'pageAmount': pageAmount
+        });
+    };
+    $scope.debug = function() {
+        broadcast.send({ 'action': 'debug' });
+    };
+}
+
+/**
  * Controller for range scale
  * @author ansel
  */
@@ -144,7 +182,6 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
         }
     };
     $scope.$on('handleBroadcast', function(event, data) {
-        console.log(data.action);
         switch (data.action) {
         case 'showInfoBox':
             $timeout.cancel($scope.popupTimer);
@@ -346,6 +383,7 @@ function Tree($scope, rexster, broadcast) {
          * @return {Array}           Array of pageViews with keys
          */
         index: function(pageViews) {
+            pageView = pageViews || [];
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
