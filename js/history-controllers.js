@@ -397,6 +397,7 @@ function Tree($scope, rexster, broadcast) {
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
                 if (!pageView ||
+                    pageView.pageUrl === 'chrome://newtab/' ||
                     !pageView.deviceGuid ||                 // pageView is not legal
                     $scope.tree.vertexIds[pageView.id]) {   // pageView is a duplicate
                     pageViews.splice(i, 1);
