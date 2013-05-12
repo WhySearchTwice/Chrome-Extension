@@ -174,8 +174,16 @@ angular.module('history.directives', [])
                         group.add(label);
                     }
 
-                    group.on('click', $scope.toggleHidden);
+                    group.on('click', (function(url) {
+                        return function(event) {
+                            if (event.which === 1) {
+                                window.open(url);
+                            }
+                        }
+                    })(node.pageUrl));
+
                     group.on('mouseover', function(event) {
+                        $(document.body).css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > 20;
                         broadcast.send({
@@ -210,6 +218,7 @@ angular.module('history.directives', [])
                         broadcast.send(data);
                     });
                     group.on('mouseout', function() {
+                        $(document.body).css({ 'cursor': 'default' });
                         broadcast.send({ 'action': 'hideInfoBox' });
                     });
 
@@ -223,21 +232,6 @@ angular.module('history.directives', [])
                  */
                 $scope.locateTime = function(timestamp) {
                     return Math.round($scope.pixelRatio * (timestamp - $scope.leftTime));
-                }
-
-                /**
-                 * Toggles the hidden state of a group
-                 * @author  ansel
-                 *
-                 * @param  {Object} event JS event
-                 */
-                $scope.toggleHidden = function(event) {
-                    var parent = event.shape.parent;
-                    while (parent.parent.parent.nodeType !== 'Stage') {
-                        parent = parent.parent;
-                    }
-                    parent.setOpacity(parent.getOpacity() === 0.2 ? 1 : 0.2);
-                    $scope.stage.draw();
                 };
             },
             controller: Tree

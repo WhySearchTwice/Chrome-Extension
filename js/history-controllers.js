@@ -144,6 +144,7 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
         }
     };
     $scope.$on('handleBroadcast', function(event, data) {
+        console.log(data.action);
         switch (data.action) {
         case 'showInfoBox':
             $timeout.cancel($scope.popupTimer);
