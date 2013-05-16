@@ -193,10 +193,9 @@ body {
     }
 
 #tree-container {
-    cursor: ew-resize;
+    cursor: move;
     height: calc(100% - 71px);
-    overflow-x: hidden;
-    overflow-y: scroll;
+    overflow: hidden;
     padding: 0;
 }
 

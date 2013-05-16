@@ -62,7 +62,7 @@ angular.module('history.services', [], function($provide) {
 
         return {
             get: function(url, callback) {
-                if (!url.match(/^chrome:\/\//)) {
+                if (url.match(/^http/)) {
                     url = url.replace(/^https/, 'http'); // remove HTTPS so requests don't get rejected
                     $http.get(url).then(function(response) {
                         // This is the xml returned from the get request to the external website.

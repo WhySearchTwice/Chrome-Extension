@@ -18,10 +18,11 @@ function Controls($scope, broadcast) {
             'timeDelta': timeDelta
         });
     };
-    $scope.page = function(pageAmount) {
+    $scope.move = function(pageX, scrollY) {
         broadcast.send({
-            'action': 'page',
-            'pageAmount': pageAmount
+            'action': 'move',
+            'pageX': pageX,
+            'scrollY': scrollY
         });
     };
     $scope.debug = function() {
@@ -38,14 +39,16 @@ function Hotkeys($scope, broadcast) {
         switch (event.keyCode) {
         case 37:
             broadcast.send({
-                'action': 'page',
-                'pageAmount': -0.5
+                'action': 'move',
+                'pageX': -0.5,
+                'scrollY': 0
             });
             break;
         case 39:
             broadcast.send({
-                'action': 'page',
-                'pageAmount': 0.5
+                'action': 'move',
+                'pageX': 0.5,
+                'scrollY': 0
             });
             break;
         }
@@ -56,10 +59,10 @@ function Hotkeys($scope, broadcast) {
             'timeDelta': timeDelta
         });
     };
-    $scope.page = function(pageAmount) {
+    $scope.move = function(pageX, scrollY) {
         broadcast.send({
-            'action': 'page',
-            'pageAmount': pageAmount
+            'pageX': pageX,
+            'scrollY': scrollY
         });
     };
     $scope.debug = function() {
@@ -251,7 +254,6 @@ function Tree($scope, rexster, broadcast) {
      * @author ansel
      */
     $scope.updateRange = function() {
-        console.log($scope.rightTime - $scope.range * 1000 * 60);
         broadcast.send({
             'action': 'updateRange',
             'rangeDuration': $scope.range,
@@ -286,8 +288,8 @@ function Tree($scope, rexster, broadcast) {
             $scope.updateRange();
             break;
 
-        case 'page':
-            $scope.rightTime = data.pageAmount ? Math.round($scope.rightTime + ($scope.range * 1000 * 60) * data.pageAmount) : $scope.now();
+        case 'move':
+            $scope.rightTime = data.pageX ? Math.round($scope.rightTime + ($scope.range * 1000 * 60) * data.pageX) : $scope.now();
             if ($scope.rightTime > $scope.now()) {
                 $scope.rightTime = $scope.now();
             }

@@ -24,13 +24,18 @@ angular.module('history.directives', [])
                     };
                 });
                 $scope.stage.on('dragmove', function(event) {
-                    // don't allow vertical panning
-                    $scope.stage.setY(0);
+                    if ($scope.stage.getY() + $scope.tree.height < $scope.viewportHeight) {
+                        $scope.stage.setY($scope.viewportHeight - $scope.tree.height);
+                    }
+                    if ($scope.stage.getY() > 0) {
+                        $scope.stage.setY(0);
+                    }
                 });
                 $scope.stage.on('dragend', function(event) {
                     broadcast.send({
-                        'action': 'page',
-                        'pageAmount': -(event.pageX - $scope.dragging.x) / $scope.viewportWidth
+                        'action': 'move',
+                        'pageX': -(event.pageX - $scope.dragging.x) / $scope.viewportWidth,
+                        'scrollY': -(event.pageY - $scope.dragging.Y)
                     });
                     $scope.stage.setX(0);
                     $scope.$apply();
@@ -40,10 +45,10 @@ angular.module('history.directives', [])
                 $scope.layers = {};
 
                 $scope.viewportWidth = $window.innerWidth;
-                angular.element($window).bind('resize', function() {
+                angular.element($window).bind('resize load', function() {
                     $scope.$apply(function() {
                         $scope.viewportWidth = $window.innerWidth;
-                        $scope.viewportHeight = $window.innerHeight;
+                        $scope.viewportHeight = $window.innerHeight - 71;
                     });
                 });
 
@@ -74,25 +79,27 @@ angular.module('history.directives', [])
                     } else {
                         $scope.layers.tree = new Kinetic.Layer();
                     }
-                    var y = $scope.lineHeight;
+                    $scope.tree.height = $scope.lineHeight;
                     var roots = Object.keys($scope.tree.built.root).sort();
                     for (var i = 0, l = roots.length; i < l; i++) {
                         var group = $scope.createSubtree($scope.tree.built.root[roots[i]], 0);
-                        group.setY(y);
+                        if ($scope.tree.height === $scope.lineHeight) {
+                            $scope.topGroup = group;
+                        }
+                        group.setY($scope.tree.height);
                         $scope.layers.tree.add(group);
-                        y += group.getHeight() + $scope.lineHeight * 3; // 3: extra margin between windows
+                        $scope.tree.height += group.getHeight() + $scope.lineHeight * 3; // 3: extra margin between windows
                     }
                     console.log($scope.layers.tree);
                     $scope.stage.setSize({
                         width: $scope.viewportWidth,
-                        height: y
+                        height: $scope.viewportHeight
                     });
                     $scope.stage.add($scope.layers.tree);
                 };
 
                 $scope.$watch('tree.built', $scope.drawTree, true);
                 $scope.$watch('[range, rightTime]', function() {
-                    console.log('moved');
                     $scope.drawTree();
                     $scope.updateData();
                 }, true);
@@ -251,7 +258,7 @@ angular.module('history.directives', [])
                         broadcast.send(data);
                     });
                     group.on('mouseout', function() {
-                        $('#tree-container').css({ 'cursor': 'ew-resize' });
+                        $('#tree-container').css({ 'cursor': 'move' });
                         broadcast.send({ 'action': 'hideInfoBox' });
                     });
 
