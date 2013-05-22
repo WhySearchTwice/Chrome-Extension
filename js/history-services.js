@@ -35,21 +35,26 @@ angular.module('history.services', [], function($provide) {
 
         /**
          * Gets the HTML String contents of any tag in a given HTML String
-         * @author ansel
+         * @author ansel, chris
          *
          * @param  {String} html Target HTML
          * @param  {String} tag  Target tag
-         * @param  {String} attr Optional attribute to get the contents of
+         * @param  {String} attr Optional attribute to get the contents of the tag
+         * @param  {String} attr2 Provides additional attribute when necessary
          *
          * @return {Array}       Array of matches. One for each tag instance
          */
-        function getTagContents(html, tag, attr) {
+        function getTagContents(html, tag, attr, attr2) {
             var search,
                 match,
                 results = [];
 
             if (attr) {
-                search = new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'gi');
+                if(attr2) {
+                    search = new RegExp('<' + tag + '[^og:image>]*' + attr + '="([^"]*)"' + attr2 + '="([^"]*)"', 'gi');
+                } else {
+                    search = new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'gi');
+                }
             } else {
                 search = new RegExp('<' + tag + '[^>]*>([\\S\\s]*)<\\/' + tag + '>', 'gi');
             }
@@ -77,6 +82,9 @@ angular.module('history.services', [], function($provide) {
                         }
 
                         // get images
+
+                        results = getTagContents(html, 'meta', 'property', 'content');
+
                         results = getTagContents(html, 'img', 'src');
                         if (results.length) {
                             var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
