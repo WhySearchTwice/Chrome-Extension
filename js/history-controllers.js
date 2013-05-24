@@ -297,6 +297,23 @@ function Tree($scope, rexster, broadcast) {
 
     $scope.updateRange();
 
+    chrome.extension.onMessage.addListener(
+        function(request, sender, sendResponse) {
+            switch (request.action) {
+
+            case 'callback':
+                console.log(request.func);
+                console.log(request.args);
+                console.log($scope[request.func]);
+                $scope[request.func].apply(undefined, request.args);
+                break;
+
+            default:
+                break;
+            }
+        }
+    );
+
     // listen for parameter changes
     $scope.$on('handleBroadcast', function(event, data) {
         switch (data.action) {
@@ -426,8 +443,10 @@ function Tree($scope, rexster, broadcast) {
                 var pageView = pageViews[i];
                 if (!pageView ||
                     pageView.pageUrl === 'chrome://newtab/' ||
+                    pageView.pageUrl.substr(0, 16) === 'chrome-search://' ||
                     !pageView.deviceGuid ||                 // pageView is not legal
-                    $scope.tree.vertexIds[pageView.id]) {   // pageView is a duplicate
+                    $scope.tree.vertexIds[pageView.id] ||
+                    pageView.pageCloseTime === -1) {   // pageView is a duplicate
                     pageViews.splice(i, 1);
                     i--;
                     l--;
@@ -590,10 +609,12 @@ function Tree($scope, rexster, broadcast) {
      * @author ansel
      */
     $scope.updateData = function() {
-        // do search
-        rexster.search($scope.rightTime - $scope.range * 1000 * 60, $scope.rightTime, function(results) {
+        $scope.searchCallback = function(results) {
+            console.log(results);
             $scope.tree.build(results);
-        });
+        };
+        // do search
+        rexster.search($scope.rightTime - $scope.range * 1000 * 60, $scope.rightTime, $scope.searchCallback);
         // check for persistent tabs
         /*rexster.search(function(persistentPages) {
             $scope.tree.build(persistentPages);

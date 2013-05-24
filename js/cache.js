@@ -229,18 +229,25 @@ function cacheUpdatePage(page) {
  * @param  {Int} closeRange      end of range
  * @param  {Int} callback        callback function
  */
-function cacheGetTimeRange(openRange, closeRange, callback) {
+function cacheGetTimeRange(openRange, closeRange, params, successFunction) {
     log('Searching time range...');
+
+    if (typeof params === 'function') {
+        // handle omitted params object
+        successFunction = params;
+        params = {};
+    }
 
     //make sure the params are there
     //openRange needs to be in the future relative to closeRange
     if (!openRange ||
         !closeRange ||
         !successFunction ||
-        typeof successFunction !== 'function' ||
         closeRange <= openRange) {
         return;
     }
+    console.log("not currently using params:");
+    console.log(params);
 
     db.transaction(function(tx) {
         tx.executeSql('SELECT * from views ' +
@@ -252,7 +259,7 @@ function cacheGetTimeRange(openRange, closeRange, callback) {
                           var results = [], item;
                           for (var i = 0, l = sqlResults.rows.length; i < l; i++) {
                               item = sqlResults.rows.item(i);
-                              results.push({
+                              var result = {
                                   'tabId': item.tabId,
                                   'windowId': item.windowId,
                                   'pageOpenTime': item.openTime,
@@ -262,9 +269,20 @@ function cacheGetTimeRange(openRange, closeRange, callback) {
                                   'id': item.id,
                                   'deviceGuid': item.deviceGuid,
                                   'predecessorId': item.predecessorId
-                              });
+                              };
+                              if (item.predecessorId && item.predecessorId !== -1) {
+                                  result.predecessorId = item.predecessorId;
+                              }
+                              if (item.parentId && item.parentId !== -1) {
+                                  result.parentId = item.parentId;
+                              }
+                              results.push(result);
                           }
-                          successFunction(JSON.stringify({ 'results': results }));
+                          chrome.extension.sendMessage({
+                              action: 'callback',
+                              func: successFunction,
+                              args: [results]
+                          });
                       },
                       onError);
     });

@@ -11,6 +11,14 @@ angular.module('history.services', [], function($provide) {
                     action: 'getGlobals',
                     message: globals
                 }, callback);
+            },
+            call: function(func, args, callback) {
+                chrome.extension.sendMessage({
+                    action: 'call',
+                    func: func,
+                    args: args,
+                    callback: callback
+                });
             }
         };
     });
@@ -217,6 +225,11 @@ angular.module('history.services', [], function($provide) {
                         }
                         var request = '/parsley/search?' + encoded.join('&');
                     }
+
+                    /*
+                    cache call here
+                    */
+                    background.call('cacheGetTimeRange', [openRange, closeRange, params], 'searchCallback');
                 }
 
                 return $http

@@ -112,6 +112,11 @@ chrome.extension.onMessage.addListener(
             sendResponse(globals);
             break;
 
+        case 'call':
+            request.args.push(request.callback);
+            window[request.func].apply(undefined, request.args);
+            break;
+
         default:
             break;
         }
