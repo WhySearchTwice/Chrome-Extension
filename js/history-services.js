@@ -35,12 +35,11 @@ angular.module('history.services', [], function($provide) {
 
         /**
          * Gets the HTML String contents of any tag in a given HTML String
-         * @author ansel, chris
+         * @author ansel
          *
          * @param  {String} html Target HTML
          * @param  {String} tag  Target tag
          * @param  {String} attr Optional attribute to get the contents of the tag
-         * @param  {String} attr2 Provides additional attribute when necessary
          *
          * @return {Array}       Array of matches. One for each tag instance
          */
