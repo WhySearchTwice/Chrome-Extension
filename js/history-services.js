@@ -64,45 +64,50 @@ angular.module('history.services', [], function($provide) {
             get: function(url, callback) {
                 if (url.match(/^http/)) {
                     url = url.replace(/^https/, 'http'); // remove HTTPS so requests don't get rejected
-                    $http.get(url).then(function(response) {
-                        // This is the xml returned from the get request to the external website.
-                        var html = response.data,
-                            data = {},
-                            results;
+                    $http.get(url)
+                        .success(function(response) {
+                            // This is the xml returned from the get request to the external website.
+                            var html = response,
+                                data = {},
+                                results;
 
-                        // get title
-                        results = getTagContents(html, 'h1');
-                        if (results.length) {
-                            data.title = stripTags(results[0]).substr(0, 140);
-                        }
-
-                        // get images
-
-                        results = getTagContents(html, 'meta property="og:image"', 'content');
-                        if (!results.length) {
-                            results = getTagContents(html, 'img', 'src');
+                            // get title
+                            results = getTagContents(html, 'title');
                             if (results.length) {
-                                var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
-                                    protocolRelativeUrl = url.match(/^.*:/)[0] + '//',
-                                    relativeUrl = url.replace(/[^\/]*$/, '');
-                                for (var i = 0, l = results.length; i < l; i++) {
-                                    if (results[i].match(/^\/\//)) {
-                                        results[i] = results[i].replace(/^\/\//, protocolRelativeUrl);
-                                    } else if (results[i].match(/^\//)) {
-                                        results[i] = results[i].replace(/^\//, domainRelativeUrl);
-                                    } else if (!results[i].match(/^.*:\/\//)) {
-                                        results[i] = relativeUrl + results[i];
-                                    }
-                                }
-                                data.images = results;
+                                data.title = stripTags(results[0]).substr(0, 140);
                             }
-                        } else {
-                            data.featuredImage = results[0];
-                        }
+
+                            // get images
+
+                            results = getTagContents(html, 'meta property="og:image"', 'content');
+                            if (!results.length) {
+                                results = getTagContents(html, 'img', 'src');
+                                if (results.length) {
+                                    var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
+                                        protocolRelativeUrl = url.match(/^.*:/)[0] + '//',
+                                        relativeUrl = url.replace(/[^\/]*$/, '');
+                                    for (var i = 0, l = results.length; i < l; i++) {
+                                        if (results[i].match(/^\/\//)) {
+                                            results[i] = results[i].replace(/^\/\//, protocolRelativeUrl);
+                                        } else if (results[i].match(/^\//)) {
+                                            results[i] = results[i].replace(/^\//, domainRelativeUrl);
+                                        } else if (!results[i].match(/^.*:\/\//)) {
+                                            results[i] = relativeUrl + results[i];
+                                        }
+                                    }
+                                    data.images = results;
+                                }
+                            } else {
+                                data.featuredImage = results[0];
+                            }
 
 
-                        callback(data);
-                    });
+                            callback(data);
+                        })
+                        .error(function() {
+                            callback(false);
+                        })
+                    ;
                 }
             }
         };

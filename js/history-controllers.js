@@ -61,6 +61,7 @@ function Hotkeys($scope, broadcast) {
     };
     $scope.move = function(pageX, scrollY) {
         broadcast.send({
+            'action': 'move',
             'pageX': pageX,
             'scrollY': scrollY
         });
@@ -74,7 +75,7 @@ function Hotkeys($scope, broadcast) {
  * Controller for range scale
  * @author ansel
  */
-function Range($scope) {
+function Range($scope, broadcast) {
     $scope.selection = [];
     $scope.left = true;
     $scope.right = true;
@@ -102,6 +103,15 @@ function Range($scope) {
             $scope.removeSelection();
             break;
         }
+    });
+
+    $('#tree-container').on('mousewheel', function(event){
+        broadcast.send({
+            'action': 'zoom',
+            'pageX': event.originalEvent.pageX,
+            'pageY': event.originalEvent.pageY,
+            'timeDelta': (event.originalEvent.wheelDelta > 0 ? -1 : 1) * 10
+        });
     });
 
     $scope.moveSelection = function(data) {
@@ -193,33 +203,43 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
     $scope.$on('handleBroadcast', function(event, data) {
         switch (data.action) {
         case 'showInfoBox':
-            $timeout.cancel($scope.popupTimer);
+            $scope.keepInfoBox();
             if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
-            $scope.infoBox = data.infoBox;
             $scope.visible = true;
+            $scope.infoBox = data.infoBox;
             $scope.checkPosition();
 
             // Uses scrape service to get the new image.
             scrape.get(data.infoBox.url, function(data) {
-                for (var field in data) {
-                    $scope.infoBox[field] = data[field];
-                }
-                if ($scope.infoBox.images) {
-                    var image,
-                        largestArea = 0;
-                    for (var i = 0, l = $scope.infoBox.images.length; i < l; i++) {
-                        var image = new Image();
-                        image.onload = function() {
-                            if (this.width * this.height > largestArea) {
-                                $scope.infoBox.featuredImage = this.src;
-                                largestArea = this.width * this.height;
+                $scope.infoBox.checkingImages = [];
+                if (!data) {
+                    $scope.infoBox.title = 'Could not get title...';
+                } else {
+                    console.log(data);
+                    for (var field in data) {
+                        $scope.infoBox[field] = data[field];
+                    }
+                    if ($scope.infoBox.images) {
+                        var image,
+                            largestArea = 0;
+                        for (var i = 0, l = $scope.infoBox.images.length; i < l; i++) {
+                            $scope.infoBox.checkingImages.push(true);
+                            var image = new Image();
+                            image.onload = function() {
+                                if (this.width * this.height > largestArea) {
+                                    $scope.infoBox.featuredImage = this.src;
+                                    largestArea = this.width * this.height;
+                                    $(this).remove();
+                                }
+                                $scope.infoBox.checkingImages.splice(0, 1);
                                 $scope.$apply();
-                            }
-                        };
-                        image.src = $scope.infoBox.images[i];
+                            };
+                            image.src = $scope.infoBox.images[i];
+                        }
                     }
                 }
             });
+            $scope.$apply();
             break;
 
         case 'keepInfoBox':
@@ -267,7 +287,7 @@ function Tree($scope, rexster, broadcast) {
     $scope.rightTime = parseInt(localStorage.rightTime, 10) || $scope.now();
     $scope.range = parseInt(localStorage.range, 10) || 30;  // range in minutes
     $scope.offset = getScrollBarWidth();
-    $scope.lineHeight = parseInt(localStorage.lineHeight, 10) || 20;  // history line height in px
+    $scope.lineHeight = parseInt(localStorage.lineHeight, 10) || 25;  // history line height in px
 
     // keep track of scroll position
     $scope.scrollTop = 0;
@@ -285,6 +305,12 @@ function Tree($scope, rexster, broadcast) {
             if ($scope.range <= 0) {
                 $scope.range = 1;
             }
+            if (data.pageX && data.pageY) {
+                var targetTime = data.pageX / $scope.pixelRatio + $scope.leftTime;
+                console.log(moment(targetTime).format('h:mma'));
+                //$scope.rightTime = ;
+            }
+            $scope.$apply();
             $scope.updateRange();
             break;
 

@@ -73,7 +73,7 @@
             >
                 <h3 ng-show="infoBox.title">{{infoBox.title}}</h3>
                 <a href="{{infoBox.url}}" class="pageUrl" title="{{infoBox.url}}" target="_blank">{{infoBox.url}}</a>
-                <i class="icon-spinner icon-spin icon-large" ng-hide="infoBox.featuredImage"></i>
+                <i class="icon-spinner icon-spin icon-large" ng-show="infoBox.checkingImages.length"></i>
                 <img src="{{infoBox.featuredImage}}" ng-show="infoBox.featuredImage">
             </div>
         </div>

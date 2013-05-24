@@ -88,7 +88,7 @@ angular.module('history.directives', [])
                         }
                         group.setY($scope.tree.height);
                         $scope.layers.tree.add(group);
-                        $scope.tree.height += group.getHeight() + $scope.lineHeight * 3; // 3: extra margin between windows
+                        $scope.tree.height += group.getHeight() + $scope.lineHeight * 2; // 2: extra margin between windows
                     }
                     console.log($scope.layers.tree);
                     $scope.stage.setSize({
@@ -131,10 +131,10 @@ angular.module('history.directives', [])
                             group.setHeight(group.getHeight() + subgroup.getHeight());
                             y = group.getHeight();
                             if (subtree.children) {
-                                var position = subgroup.children[0].getX() + 0.5;
+                                var position = subgroup.children[0].getX() + 0;
                                 var path = new Kinetic.Line({
                                     opacity: 0.2,
-                                    points: [position, 16, position, group.getHeight() - 7], // 7px for endcap
+                                    points: [position + 0.5, 3, position + 0.5, group.getHeight() - 15],
                                     stroke: 'black',
                                     strokeWidth: 1
                                 });
@@ -159,43 +159,56 @@ angular.module('history.directives', [])
                 $scope.createNode = function(start, end, node) {
                     var group = new Kinetic.Group({
                         x: Math.round(start),
-                        y: 0.5,
+                        y: 0,
                         height: 20
                     });
 
-                    var duration = (end - start > 3 ? Math.round(end - start) : 2) + 0.5;
+                    var duration = (end - start > 3 ? Math.round(end - start) : 2) + 0;
 
                     // add transparent background
                     group.add(new Kinetic.Rect({
                         x: 0,
                         y: 0,
-                        height: 15,
+                        height: 20,
+                        opacity: 0,
+                        fill: '#eee',
                         width: duration
                     }));
-                    // add duration line
-                    group.add(new Kinetic.Line({
-                        points: [0, 15, duration, 15],
-                        stroke: '#000',
-                        strokeWidth: 1
-                    }));
                     // add endpoints
-                    group.add(new Kinetic.Line({
-                        points: [0.5, 12, 0.5, 17],
-                        stroke: '#000',
-                        strokeWidth: 1
+                    group.add(new Kinetic.Rect({
+                        x: 0,
+                        y: 0,
+                        height: 20,
+                        fillLinearGradientStartPoint: [0, 0],
+                        fillLinearGradientEndPoint: [0, 20],
+                        fillLinearGradientColorStops: [0, '#06ABF5', 1, '#fff'],
+                        width: 1
                     }));
-                    group.add(new Kinetic.Line({
-                        points: [duration, 12, duration, 17],
-                        stroke: '#000',
-                        strokeWidth: 1
+                    group.add(new Kinetic.Rect({
+                        x: duration,
+                        y: 0,
+                        fillLinearGradientStartPoint: [0, 0],
+                        fillLinearGradientEndPoint: [0, 20],
+                        fillLinearGradientColorStops: [0, '#06ABF5', 1, '#fff'],
+                        height: 20,
+                        width: 1
+                    }));
+                    // add duration line
+                    group.add(new Kinetic.Rect({
+                        x: 0,
+                        y: 0,
+                        height: 3,
+                        fill: '#06ABF5',
+                        width: duration
                     }));
 
+                    var domain = '';
                     var predecessor = node.predecessorId ? $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) : undefined;
                     if ((end > 0 && start < 0) ||
                         !predecessor ||
                         predecessor.pageUrl !== node.pageUrl
                     ) {
-                        var domain = node.pageUrl.replace(/^(.*):\/\/|\/.*|www\./g, '') || 'Missing URL';
+                        domain = node.pageUrl.replace(/^(.*):\/\/|\/.*|www\./g, '') || 'Missing URL';
 
                         if (predecessor && domain === predecessor.pageUrl.replace(/^(.*):\/\/|\/.*|www\./g, '')) {
                             domain = '';
@@ -203,16 +216,16 @@ angular.module('history.directives', [])
 
                         // truncate URLs longer than node line.
                         domain = domain.substring(0, (end - (start < 0 ? 2 : start)) / 7);
-
-                        var label = new Kinetic.Text({
-                            text: domain,
-                            fontSize: 14,
-                            fontFamily: '"Roboto"',
-                            fill: '#000',
-                            x: start < 2 ? Math.ceil(-1 * start) : 2 // prevent text from falling off left side of screen
-                        });
-                        group.add(label);
                     }
+
+                    group.add(new Kinetic.Text({
+                        text: domain,
+                        fontSize: 14,
+                        fontFamily: '"Roboto"',
+                        fill: '#aaa',
+                        x: start < 2 ? Math.ceil(-1 * start) : 2, // prevent text from falling off left side of screen
+                        y: 3
+                    }));
 
                     group.on('click', (function(url) {
                         return function(event) {
@@ -223,6 +236,13 @@ angular.module('history.directives', [])
                     })(node.pageUrl));
 
                     group.on('mouseover', function(event) {
+                        var group = event.targetNode;
+                        while (group.nodeType !== 'Group') {
+                            group = group.parent;
+                        }
+                        group.children[0].setOpacity(1);   // background
+                        group.children[4].setFill('#000'); // text
+                        $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > 20;
@@ -233,7 +253,7 @@ angular.module('history.directives', [])
                                 'url': node.pageUrl,
                                 'style': {
                                     'left': (hasSpace ? event.pageX - 20 : window.innerWidth - 340),
-                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 15 // 71 for header, 15 for node height
+                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 20 // 71 for header, 20 for node height
                                 }
                             }
                         });
@@ -258,6 +278,13 @@ angular.module('history.directives', [])
                         broadcast.send(data);
                     });
                     group.on('mouseout', function() {
+                        var group = event.targetNode;
+                        while (group.nodeType !== 'Group') {
+                            group = group.parent;
+                        }
+                        group.children[0].setOpacity(0);   // background
+                        group.children[4].setFill('#aaa'); // text
+                        $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'move' });
                         broadcast.send({ 'action': 'hideInfoBox' });
                     });
