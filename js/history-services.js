@@ -44,22 +44,18 @@ angular.module('history.services', [], function($provide) {
          *
          * @return {Array}       Array of matches. One for each tag instance
          */
-        function getTagContents(html, tag, attr, attr2) {
+        function getTagContents(html, tag, attr) {
             var search,
                 match,
                 results = [];
 
             if (attr) {
-                if(attr2) {
-                    search = new RegExp('<' + tag + '[^og:image>]*' + attr + '="([^"]*)"' + attr2 + '="([^"]*)"', 'gi');
-                } else {
-                    search = new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'gi');
-                }
+                search = new RegExp('<' + tag + '[^>]*' + attr + '="([^"]*)"', 'gi');
             } else {
                 search = new RegExp('<' + tag + '[^>]*>([\\S\\s]*)<\\/' + tag + '>', 'gi');
             }
 
-            while (match = search.exec(html)) {
+            while ((match = search.exec(html))) {
                 results.push(match[1]);
             }
             return results;
@@ -83,24 +79,28 @@ angular.module('history.services', [], function($provide) {
 
                         // get images
 
-                        results = getTagContents(html, 'meta', 'property', 'content');
-
-                        results = getTagContents(html, 'img', 'src');
-                        if (results.length) {
-                            var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
-                                protocolRelativeUrl = url.match(/^.*:/)[0] + '//',
-                                relativeUrl = url.replace(/[^\/]*$/, '');
-                            for (var i = 0, l = results.length; i < l; i++) {
-                                if (results[i].match(/^\/\//)) {
-                                    results[i] = results[i].replace(/^\/\//, protocolRelativeUrl);
-                                } else if (results[i].match(/^\//)) {
-                                    results[i] = results[i].replace(/^\//, domainRelativeUrl);
-                                } else if (!results[i].match(/^.*:\/\//)) {
-                                    results[i] = relativeUrl + results[i];
+                        results = getTagContents(html, 'meta property="og:image"', 'content');
+                        if (!results.length) {
+                            results = getTagContents(html, 'img', 'src');
+                            if (results.length) {
+                                var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
+                                    protocolRelativeUrl = url.match(/^.*:/)[0] + '//',
+                                    relativeUrl = url.replace(/[^\/]*$/, '');
+                                for (var i = 0, l = results.length; i < l; i++) {
+                                    if (results[i].match(/^\/\//)) {
+                                        results[i] = results[i].replace(/^\/\//, protocolRelativeUrl);
+                                    } else if (results[i].match(/^\//)) {
+                                        results[i] = results[i].replace(/^\//, domainRelativeUrl);
+                                    } else if (!results[i].match(/^.*:\/\//)) {
+                                        results[i] = relativeUrl + results[i];
+                                    }
                                 }
+                                data.images = results;
                             }
-                            data.images = results;
+                        } else {
+                            data.featuredImage = results[0];
                         }
+
 
                         callback(data);
                     });
