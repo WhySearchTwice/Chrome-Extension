@@ -44,11 +44,25 @@ function Hotkeys($scope, broadcast) {
                 'scrollY': 0
             });
             break;
+        case 38:
+            broadcast.send({
+                'action': 'move',
+                'pageX': 0,
+                'scrollY': -0.5
+            });
+            break;
         case 39:
             broadcast.send({
                 'action': 'move',
                 'pageX': 0.5,
                 'scrollY': 0
+            });
+            break;
+        case 40:
+            broadcast.send({
+                'action': 'move',
+                'pageX': 0,
+                'scrollY': 0.5
             });
             break;
         }
@@ -105,7 +119,8 @@ function Range($scope, broadcast) {
         }
     });
 
-    $('#tree-container').on('mousewheel', function(event){
+    $('#tree-container').on('mousewheel', function(event) {
+        var deltaMagnitude = $scope.range > 15 ? 15 : $scope.range > 5 ? 5 : 1;
         broadcast.send({
             'action': 'zoom',
             'pageX': event.originalEvent.pageX,
@@ -318,16 +333,22 @@ function Tree($scope, rexster, broadcast) {
     $scope.$on('handleBroadcast', function(event, data) {
         switch (data.action) {
         case 'zoom':
+            if (data.pageX && data.pageY) {
+                var targetTime = Math.round(data.pageX / $scope.pixelRatio + $scope.leftTime);
+            }
+
             $scope.range = $scope.range + data.timeDelta;
             if ($scope.range <= 0) {
                 $scope.range = 1;
             }
+            $scope.$apply();
+
             if (data.pageX && data.pageY) {
-                var targetTime = data.pageX / $scope.pixelRatio + $scope.leftTime;
-                console.log(moment(targetTime).format('h:mma'));
-                //$scope.rightTime = ;
+                var timeAtTarget = Math.round(data.pageX / $scope.pixelRatio + $scope.leftTime);
+                $scope.rightTime += (targetTime - timeAtTarget);
             }
             $scope.$apply();
+
             $scope.updateRange();
             break;
 
@@ -336,6 +357,8 @@ function Tree($scope, rexster, broadcast) {
             if ($scope.rightTime > $scope.now()) {
                 $scope.rightTime = $scope.now();
             }
+            $scope.stage.setY($scope.stage.getY() - $scope.viewportHeight * data.scrollY);
+            $scope.stage.fire('dragmove');
             $scope.updateRange();
             break;
 
