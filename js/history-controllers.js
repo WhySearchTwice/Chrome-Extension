@@ -215,6 +215,14 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
             $scope.$apply();
         }
     };
+    $scope.debug = function() {
+        if (localStorage.DEBUG) {
+            broadcast.send({
+                'action': 'debug',
+                'pageView': $scope.infoBox.id
+            });
+        }
+    };
     $scope.$on('handleBroadcast', function(event, data) {
         switch (data.action) {
         case 'showInfoBox':
@@ -239,6 +247,10 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                         for (var i = 0, l = $scope.infoBox.images.length; i < l; i++) {
                             $scope.infoBox.checkingImages.push(true);
                             var image = new Image();
+                            image.onerror = function() {
+                                $scope.infoBox.checkingImages.splice(0, 1);
+                                $scope.$apply();
+                            };
                             image.onload = function() {
                                 if (this.width * this.height > largestArea) {
                                     $scope.infoBox.featuredImage = this.src;
@@ -360,8 +372,13 @@ function Tree($scope, rexster, broadcast) {
             break;
 
         case 'debug':
-            console.log('DEBUG Tree:');
-            console.log($.extend({}, $scope));
+            if (data.pageView) {
+                console.log('DEBUG PageView:');
+                console.log($.extend({}, $scope.tree.getPageView($scope.tree.vertexIds[data.pageView])));
+            } else {
+                console.log('DEBUG Tree:');
+                console.log($.extend({}, $scope));
+            }
             break;
         }
     });

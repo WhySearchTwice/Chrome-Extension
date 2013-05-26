@@ -24,7 +24,7 @@ angular.module('history.directives', [])
                     };
                 });
                 $scope.stage.on('dragmove', function(event) {
-                    if (!isNaN($scope.stage.getY())) {
+                    if ($scope.dragging && !isNaN($scope.stage.getY())) {
                         $scope.dragging.dy = $scope.stage.getY();
                     }
                     if ($scope.stage.getY() + $scope.tree.height < $scope.viewportHeight) {

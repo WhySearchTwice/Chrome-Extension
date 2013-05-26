@@ -70,6 +70,7 @@
                 ng-mouseover="keepInfoBox()"
                 ng-mouseout="hideInfoBox()"
                 ng-style="infoBox.style"
+                ng-click="debug()"
             >
                 <h3 ng-show="infoBox.title">{{infoBox.title}}</h3>
                 <a href="{{infoBox.url}}" class="pageUrl" title="{{infoBox.url}}" target="_blank">{{infoBox.url}}</a>

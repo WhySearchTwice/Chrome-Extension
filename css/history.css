@@ -156,6 +156,7 @@ body {
 }
 
     .range strong {
+        font-family: 'Roboto Condensed';
         margin-left: 7px;
     }
 
@@ -214,6 +215,7 @@ body {
 }
 
     #infoBox h3 {
+        font-family: 'Roboto Condensed';
         font-size: 18px;
         line-height: 28px;
         margin: 0;
