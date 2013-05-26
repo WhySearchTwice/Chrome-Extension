@@ -24,6 +24,9 @@ angular.module('history.directives', [])
                     };
                 });
                 $scope.stage.on('dragmove', function(event) {
+                    if (!isNaN($scope.stage.getY())) {
+                        $scope.dragging.dy = $scope.stage.getY();
+                    }
                     if ($scope.stage.getY() + $scope.tree.height < $scope.viewportHeight) {
                         $scope.stage.setY($scope.viewportHeight - $scope.tree.height);
                     }
@@ -37,6 +40,8 @@ angular.module('history.directives', [])
                         'pageX': -(event.pageX - $scope.dragging.x) / $scope.viewportWidth,
                         'scrollY': -(event.pageY - $scope.dragging.Y)
                     });
+
+                    $scope.stage.setY($scope.dragging.dy);
                     $scope.stage.setX(0);
                     $scope.$apply();
                     delete $scope.dragging;
@@ -160,7 +165,7 @@ angular.module('history.directives', [])
                     var group = new Kinetic.Group({
                         x: Math.round(start),
                         y: 0,
-                        height: 20
+                        height: $scope.nodeHeight
                     });
 
                     var duration = (end - start > 3 ? Math.round(end - start) : 2) + 0;
@@ -169,7 +174,7 @@ angular.module('history.directives', [])
                     group.add(new Kinetic.Rect({
                         x: 0,
                         y: 0,
-                        height: 20,
+                        height: $scope.nodeHeight,
                         opacity: 0,
                         fill: '#eee',
                         width: duration
@@ -178,19 +183,25 @@ angular.module('history.directives', [])
                     group.add(new Kinetic.Rect({
                         x: 0,
                         y: 0,
-                        height: 20,
+                        height: $scope.nodeHeight,
                         fillLinearGradientStartPoint: [0, 0],
-                        fillLinearGradientEndPoint: [0, 20],
-                        fillLinearGradientColorStops: [0, '#06ABF5', 1, '#fff'],
+                        fillLinearGradientEndPoint: [0, $scope.nodeHeight],
+                        fillLinearGradientColorStops: [
+                            0, '#06ABF5',
+                            1, '#fff'
+                        ],
                         width: 1
                     }));
                     group.add(new Kinetic.Rect({
                         x: duration,
                         y: 0,
+                        height: $scope.nodeHeight,
                         fillLinearGradientStartPoint: [0, 0],
-                        fillLinearGradientEndPoint: [0, 20],
-                        fillLinearGradientColorStops: [0, '#06ABF5', 1, '#fff'],
-                        height: 20,
+                        fillLinearGradientEndPoint: [0, $scope.nodeHeight],
+                        fillLinearGradientColorStops: [
+                            0, '#06ABF5',
+                            1, '#fff'
+                        ],
                         width: 1
                     }));
                     // add duration line
@@ -220,7 +231,7 @@ angular.module('history.directives', [])
 
                     group.add(new Kinetic.Text({
                         text: domain,
-                        fontSize: 14,
+                        fontSize: Math.round($scope.nodeHeight * 0.75),
                         fontFamily: '"Roboto"',
                         fill: '#aaa',
                         x: start < 2 ? Math.ceil(-1 * start) : 2, // prevent text from falling off left side of screen
@@ -245,7 +256,7 @@ angular.module('history.directives', [])
                         $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
-                        var hasSpace = window.innerWidth - event.pageX - 300 > 20;
+                        var hasSpace = window.innerWidth - event.pageX - 300 > $scope.nodeHeight;
                         broadcast.send({
                             'action': 'showInfoBox',
                             'infoBox': {
@@ -253,7 +264,7 @@ angular.module('history.directives', [])
                                 'url': node.pageUrl,
                                 'style': {
                                     'left': (hasSpace ? event.pageX - 20 : window.innerWidth - 340),
-                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + 20 // 71 for header, 20 for node height
+                                    'top': this.getAbsolutePosition().y - $scope.scrollTop + 71 + $scope.nodeHeight
                                 }
                             }
                         });

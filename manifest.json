@@ -33,7 +33,7 @@
     },
     "options_page": "html/options.html",
     "permissions": [
-        "http://*/",
+        "*://*/*",
         "bookmarks",
         "clipboardWrite",
         "geolocation",

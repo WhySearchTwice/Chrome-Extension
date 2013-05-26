@@ -230,7 +230,6 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                 if (!data) {
                     $scope.infoBox.title = 'Could not get title...';
                 } else {
-                    console.log(data);
                     for (var field in data) {
                         $scope.infoBox[field] = data[field];
                     }
@@ -303,6 +302,7 @@ function Tree($scope, rexster, broadcast) {
     $scope.range = parseInt(localStorage.range, 10) || 30;  // range in minutes
     $scope.offset = getScrollBarWidth();
     $scope.lineHeight = parseInt(localStorage.lineHeight, 10) || 25;  // history line height in px
+    $scope.nodeHeight = Math.round($scope.lineHeight * 0.8);
 
     // keep track of scroll position
     $scope.scrollTop = 0;
@@ -317,9 +317,6 @@ function Tree($scope, rexster, broadcast) {
             switch (request.action) {
 
             case 'callback':
-                console.log(request.func);
-                console.log(request.args);
-                console.log($scope[request.func]);
                 $scope[request.func].apply(undefined, request.args);
                 break;
 
@@ -633,7 +630,6 @@ function Tree($scope, rexster, broadcast) {
      */
     $scope.updateData = function() {
         $scope.searchCallback = function(results) {
-            console.log(results);
             $scope.tree.build(results);
         };
         // do search
