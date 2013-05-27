@@ -35,8 +35,6 @@
     "permissions": [
         "*://*/*",
         "bookmarks",
-        "clipboardWrite",
-        "geolocation",
         "history",
         "idle",
         "notifications",
