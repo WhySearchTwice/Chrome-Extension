@@ -38,7 +38,7 @@ angular.module('history.directives', [])
                     broadcast.send({
                         'action': 'move',
                         'pageX': -(event.pageX - $scope.dragging.x) / $scope.viewportWidth,
-                        'scrollY': -(event.pageY - $scope.dragging.Y)
+                        'scrollY': 0
                     });
 
                     $scope.stage.setY($scope.dragging.dy);
@@ -243,7 +243,7 @@ angular.module('history.directives', [])
                             if (event.which === 1) {
                                 window.open(url);
                             }
-                        }
+                        };
                     })(node.pageUrl));
 
                     group.on('mouseover', function(event) {

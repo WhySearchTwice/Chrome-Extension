@@ -76,7 +76,8 @@ body {
         text-shadow: none;
     }
 
-    .navbar .btn {
+    .navbar .btn,
+    .navbar .add-on {
         background-image: none;
         background-color: #f9f9f9;
         border-color: #c5c5c5;
@@ -84,18 +85,21 @@ body {
         box-shadow: inset 0 0 0 1px #f8f8f8,
                     0 1px 1px -1px rgba(0,0,0,0.5);
         color: #000;
+        cursor: pointer;
         font-weight: normal;
         text-shadow: 0 -1px 1px transparent,  0 1px 1px transparent;
         -webkit-transition: background .25s;
     }
 
-    .navbar .btn:hover {
+    .navbar .btn:hover,
+    .navbar .add-on:hover {
         background-image: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.5));
         background-position: 0 0;
         box-shadow: inset 0 -4px 0 -2px rgba(0,0,0,.3);
     }
 
-    .navbar .btn:active {
+    .navbar .btn:active,
+    .navbar .add-on:active {
         background-image: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
         box-shadow: inset 0 4px 1px -2px rgba(0,0,0,.2);
     }
@@ -126,6 +130,10 @@ body {
         opacity: 0.5;
     }
 
+    #time-picker .bootstrap-timepicker-widget {
+        left: 85px;
+    }
+
     #search {
         border-color: #c5c5c5;
         border-radius: 3px;
@@ -142,6 +150,17 @@ body {
     .navbar-controls > .btn-group,
     .navbar-controls > .btn {
         margin-left: 10px;
+    }
+
+    .input-append {
+        float: left;
+        margin-right: 10px;
+    }
+
+    .input-append input {
+        border-top-left-radius: 3px;
+        border-bottom-left-radius: 3px;
+        width: 75px;
     }
 
 .range {

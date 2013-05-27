@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <link rel="stylesheet" href="/css/libs/bootstrap.min.css">
     <link rel="stylesheet" href="/css/libs/bootstrap-responsive.min.css">
+    <link rel="stylesheet" href="/css/libs/bootstrap-datepicker.css">
+    <link rel="stylesheet" href="/css/libs/bootstrap-timepicker.min.css">
     <link rel="stylesheet" href="/css/libs/font-awesome.min.css">
     <link rel="stylesheet" href="/css/libs/hint.min.css">
     <link rel="stylesheet" href="/css/history.css">
@@ -20,6 +22,14 @@
                     <button class="btn btn-primary">
                         <i class="icon-search"></i>
                     </button>-->
+                    <div class="input-append date hint--right" data-hint="Select a date" id="date-picker" data-date-format="m/d/yy">
+                        <input class="date-display" type="text">
+                        <span class="add-on icon-calendar"></span>
+                    </div>
+                    <div class="input-append hint--right" data-hint="Select a time" id="time-picker">
+                        <input class="time-display input-small" type="text">
+                        <span class="add-on icon-time"></span>
+                    </div>
                 </form>
                 <div class="navbar-controls" ng-controller="Controls">
                     <!--<button class="btn pull-right hint--bottom" data-hint="settings">
@@ -84,6 +94,8 @@
     <script src="/js/libs/kinetic.min.js"></script>
     <script src="/js/libs/moment.min.js"></script>
     <script src="/js/libs/bootstrap.min.js"></script>
+    <script src="/js/libs/bootstrap-datepicker.js"></script>
+    <script src="/js/libs/bootstrap-timepicker.min.js"></script>
     <script src="/js/libs/angular.min.js"></script>
     <script src="/js/libs/angular-bootstrap.min.js"></script>
     <script src="/js/libs/angular-resource.min.js"></script>

@@ -9,7 +9,7 @@ function Controls($scope, broadcast) {
     $scope.$on('handleBroadcast', function(event, data) {
         if (data.action === 'updateRange') {
             $scope.range = data.rangeDuration;
-            $('.navbar-controls .disable-now').prop('disabled', data.closeRange + 2 * 1000 * 60 > data.now)
+            $('.navbar-controls .disable-now').prop('disabled', data.closeRange + 2 * 1000 * 60 > data.now);
         }
     });
     $scope.zoom = function(timeDelta) {
@@ -48,7 +48,7 @@ function Hotkeys($scope, broadcast) {
             broadcast.send({
                 'action': 'move',
                 'pageX': 0,
-                'scrollY': -0.5
+                'scrollY': -0.25
             });
             break;
         case 39:
@@ -62,8 +62,13 @@ function Hotkeys($scope, broadcast) {
             broadcast.send({
                 'action': 'move',
                 'pageX': 0,
-                'scrollY': 0.5
+                'scrollY': 0.25
             });
+            break;
+        case 191:
+            if (event.shiftKey) {
+                broadcast.send({ 'action': 'debug' });
+            }
             break;
         }
     };
@@ -248,6 +253,7 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                             $scope.infoBox.checkingImages.push(true);
                             var image = new Image();
                             image.onerror = function() {
+                                $(this).remove();
                                 $scope.infoBox.checkingImages.splice(0, 1);
                                 $scope.$apply();
                             };
@@ -257,7 +263,9 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                                     largestArea = this.width * this.height;
                                     $(this).remove();
                                 }
-                                $scope.infoBox.checkingImages.splice(0, 1);
+                                if ($scope.infoBox.checkingImages) {
+                                    $scope.infoBox.checkingImages.splice(0, 1);
+                                }
                                 $scope.$apply();
                             };
                             image.src = $scope.infoBox.images[i];
@@ -309,6 +317,16 @@ function Tree($scope, rexster, broadcast) {
         });
     };
 
+    /**
+     * Updates the rightTime to match the user selection
+     * @author ansel
+     */
+    $scope.jumpToTime = function() {
+        $scope.rightTime = moment($('.date-display').val() + $('.time-display').val(), 'M/D/YYhh:mm A').valueOf();
+        $scope.$apply();
+        $scope.updateRange();
+    };
+
     // scope constants
     $scope.rightTime = parseInt(localStorage.rightTime, 10) || $scope.now();
     $scope.range = parseInt(localStorage.range, 10) || 30;  // range in minutes
@@ -321,6 +339,19 @@ function Tree($scope, rexster, broadcast) {
     $('.container-fluid').on('scroll', function() {
         $scope.scrollTop = this.scrollTop;
     });
+
+    var now = moment($scope.rightTime).format('M/D/YY');
+    $('#date-picker')
+        .find('.date-display').val(now).end()
+        .data('date', now)
+        .datepicker()
+        .on('changeDate', $scope.jumpToTime);
+    $('#time-picker .time-display')
+        .timepicker({
+            'appendWidgetTo': '#time-picker',
+            'minuteStep': 1
+        })
+        .on('changeTime.timepicker', $scope.jumpToTime);
 
     $scope.updateRange();
 
@@ -362,12 +393,16 @@ function Tree($scope, rexster, broadcast) {
             break;
 
         case 'move':
-            $scope.rightTime = data.pageX ? Math.round($scope.rightTime + ($scope.range * 1000 * 60) * data.pageX) : $scope.now();
+            // move X
+            $scope.rightTime = data.hasOwnProperty('pageX') ? Math.round($scope.rightTime + ($scope.range * 1000 * 60) * data.pageX) : $scope.now();
             if ($scope.rightTime > $scope.now()) {
                 $scope.rightTime = $scope.now();
             }
+
+            // move Y
             $scope.stage.setY($scope.stage.getY() - $scope.viewportHeight * data.scrollY);
-            $scope.stage.fire('dragmove');
+            $scope.stage.fire('dragmove');  // validate Y movement
+
             $scope.updateRange();
             break;
 
@@ -542,7 +577,6 @@ function Tree($scope, rexster, broadcast) {
                     ancestorGroup[relationship] = {};
                 }
                 ancestorGroup[relationship][pageView.pageOpenTime] = { node: pageView };
-                if (pageView.builtKey) { $scope.tree.removeNode(pageView); }
                 pageView.builtKey = ancestor.builtKey.concat([relationship, pageView.pageOpenTime]);
             }
         },
@@ -554,11 +588,7 @@ function Tree($scope, rexster, broadcast) {
          * @param  {Object} pageView pageView to be removed
          */
         removeNode: function(pageView) {
-            if (pageView.parentId) {
-                delete $scope.tree.getNode(pageView).children[pageView.pageOpenTime];
-            } else {
-                delete $scope.tree.getNode(pageView).successor;
-            }
+            delete $scope.tree.getNode(pageView)[pageView.parentId ? 'children' : 'successor'][pageView.pageOpenTime];
         },
 
         /**
@@ -631,9 +661,14 @@ function Tree($scope, rexster, broadcast) {
             // check root nodes for new parents
             for (var pageOpenTime in $scope.tree.built.root) {
                 var pageView = $scope.tree.built.root[pageOpenTime];
-                if (pageView.parentId && $scope.tree.vertexIds[pageView.parentId] ||
-                    pageView.predecessorId && $scope.tree.vertexIds[pageView.predecessorId]) {
-                    $scope.tree.addNode(pageView, $scope.tree.getPageView($scope.tree.vertexIds[pageView.parentId || pageView.predecessorId]), pageView.parentId ? 'children' : 'successor');
+                if ((pageView.node.parentId && $scope.tree.vertexIds[pageView.node.parentId]) ||
+                    (pageView.node.predecessorId && $scope.tree.vertexIds[pageView.node.predecessorId])) {
+                    $scope.tree.addNode(
+                        pageView.node,
+                        $scope.tree.getPageView($scope.tree.vertexIds[pageView.node.parentId || pageView.node.predecessorId]),
+                        pageView.node.parentId ? 'children' : 'successor'
+                    );
+                    delete $scope.tree.built.root[pageOpenTime];
                 }
             }
             console.log('Build complete:');
@@ -684,4 +719,4 @@ function getScrollBarWidth () {
     document.body.removeChild (outer);
 
     return (w1 - w2);
-};
+}
