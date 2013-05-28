@@ -80,14 +80,7 @@ var requestQueue = {
 
     validateEnvironment();
     console.log('Updating session...');
-    chrome.windows.getAll({populate: true}, function(windows) {
-        for (var i = 0, l = windows.length; i < l; i++) {
-            for (var j = 0, m = windows[i].tabs.length; j < m; j++) {
-                addToSession(windows[i].tabs[j]);
-            }
-        }
-        cleanDatastore();
-    });
+    cleanDatastore();
 })();
 
 /**
@@ -366,46 +359,50 @@ function addToSession(tab) {
         return;
     }
 
-    // Create an object representing the page that was just opened
-    var newPage = {
-        type: 'pageView',
-        tabId: tab.id,
-        pageUrl: tab.url,
-        windowId: tab.windowId,
-        pageOpenTime: (new Date()).getTime()
-    };
+    var newPage;
 
-    if (tab.openerTabId &&
-        tab.url !== 'chrome://newtab/'
-    ) {
-        newPage.parentId = session.windows[tab.windowId].tabs[tab.openerTabId].id;
+    if (tab.pageUrl) {
+        // This is a pre-constructed pageView, do not rebuild
+        newPage = tab;
+    } else {
+        // Create an object representing the page that was just opened
+        newPage = {
+            type: 'pageView',
+            tabId: tab.id,
+            pageUrl: tab.url,
+            windowId: tab.windowId,
+            pageOpenTime: (new Date()).getTime()
+        };
+        if (tab.openerTabId &&
+            tab.url !== 'chrome://newtab/') {
+            newPage.parentId = session.windows[tab.windowId].tabs[tab.openerTabId].id;
+        }
     }
 
     // Check if there is a tab with this ID already. If so, update it
-    if (session.windows[tab.windowId] &&
-        session.windows[tab.windowId].tabs[tab.id]
-    ) {
-        if (session.windows[tab.windowId].tabs[tab.id].id) {
-            newPage.predecessorId = session.windows[tab.windowId].tabs[tab.id].id;
+    if (session.windows[newPage.windowId] &&
+        session.windows[newPage.windowId].tabs[newPage.id]) {
+        if (session.windows[newPage.windowId].tabs[newPage.id].id) {
+            newPage.predecessorId = session.windows[newPage.windowId].tabs[newPage.id].id;
         }
         console.log('Calling send page...');
-        updatePage(tab.windowId, tab.id);
+        updatePage(newPage.windowId, newPage.id);
     } else {
         endLogEvent();
     }
 
     // Store this new page
-    if (!session.windows[tab.windowId]) {
-        session.windows[tab.windowId] = {
+    if (!session.windows[newPage.windowId]) {
+        session.windows[newPage.windowId] = {
             tabs: {},
-            focusedTab: tab.id
+            focusedTab: newPage.id
         };
     }
-    session.windows[tab.windowId].tabs[tab.id] = newPage;
+    session.windows[newPage.windowId].tabs[newPage.id] = newPage;
     console.log('Created page object:');
     console.log(newPage);
     endLogEvent();
-    sendPage(tab.windowId, tab.id);
+    sendPage(newPage.windowId, newPage.id);
 }
 
 /**
@@ -719,12 +716,32 @@ function renewGuids() {
  * @author ansel
  */
 function cleanDatastore() {
-    chrome.tabs.query({}, function(tabs) {
-        var snapshot = {};
-        for (var i = 0, l = tabs.length; i < l; i++) {
-            snapshot[tabs[i].id] = tabs[i].url;
-        }
-        post(SERVER + '/graphs/WhySearchTwice/vertices/' + deviceGuid + '/parsley/cleanup/closeTabs', snapshot);
+    var stillOpen = {};
+    get(SERVER + '/graphs/WhySearchTwice/vertices/' + deviceGuid + '/parsley/cleanup/openTabs', function(results) {
+        chrome.windows.getAll({populate: true}, function(windows) {
+            var snapshot = {};
+            var isNewTab;
+            for (var i = 0, l = windows.length; i < l; i++) {
+                for (var j = 0, m = windows[i].tabs.length; j < m; j++) {
+                    var tab = windows[i].tabs[j];
+                    isNewTab = true;
+                    snapshot[tab.id] = tab.url;
+                    for (var k = 0, o = results.length; k < o; k++) {
+                        var result = results[k];
+                        if (tab.id === result.tabId &&
+                            tab.windowId === result.windowId &&
+                            tab.url === result.pageUrl) {
+                            addToSession(result);
+                            isNewTab = false;
+                        }
+                    }
+                    if (isNewTab) {
+                        addToSession(tab);
+                    }
+                }
+            }
+            post(SERVER + '/graphs/WhySearchTwice/vertices/' + deviceGuid + '/parsley/cleanup/closeTabs', {});
+        });
     });
 }
 

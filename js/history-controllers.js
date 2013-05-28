@@ -550,8 +550,8 @@ function Tree($scope, rexster, broadcast) {
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
                 if (!pageView ||
-                    pageView.pageUrl === 'chrome://newtab/' ||
-                    pageView.pageUrl.substr(0, 16) === 'chrome-search://' ||
+                    //pageView.pageUrl === 'chrome://newtab/' ||
+                    //pageView.pageUrl.substr(0, 16) === 'chrome-search://' ||
                     !pageView.deviceGuid ||                 // pageView is not legal
                     $scope.tree.vertexIds[pageView.id]) {
                     if ($scope.tree.vertexIds[pageView.id] && pageView.pageCloseTime) {
@@ -567,6 +567,11 @@ function Tree($scope, rexster, broadcast) {
                 if (pageView.parentId && pageView.predecessorId) {
                     // wtf
                     delete pageView.parentId;
+                }
+
+                // remove cache default
+                if (pageView.pageCloseTime === -1) {
+                    pageView.pageCloseTime = pageView.pageOpenTime + 5 * 60 * 1000;
                 }
 
                 // get or create device
@@ -742,10 +747,12 @@ function Tree($scope, rexster, broadcast) {
         };
         // do search
         rexster.search($scope.rightTime - $scope.range * 1000 * 60, $scope.rightTime, $scope.searchCallback);
-        // check for persistent tabs
-        /*rexster.search(function(persistentPages) {
-            $scope.tree.build(persistentPages);
-        });*/
+        // check for persistent tabs if this is the first search
+        if (!Object.keys($scope.tree.vertexIds).length) {
+            rexster.search(function(persistentPages) {
+                $scope.tree.build(persistentPages);
+            });
+        }
     };
 
     $scope.updateData();

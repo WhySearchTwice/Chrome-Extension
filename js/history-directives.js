@@ -129,16 +129,12 @@ angular.module('history.directives', ['ngSanitize'])
                             var subgroup = $scope.createSubtree((subtree.children || subtree)[children[i]]);
                             subgroup.setY(subtree.children ? y : 0);
                             group.setHeight(group.getHeight() + subgroup.getHeight());
-                            y = group.getHeight();
+                            y += subgroup.getHeight();
                             if (subtree.children) {
-                                group.add(new Kinetic.Rect({
-                                    x: subgroup.children[0].getX(),
-                                    y: 3,
-                                    height: group.getHeight() - 15,
-                                    opacity: 0.2,
-                                    fill: '#000',
-                                    width: 1
-                                }));
+                                // add path
+                                var childNode = subgroup.children[0].children[5];
+                                childNode.setHeight(group.getHeight() - 15);
+                                childNode.setY(-1 * group.getHeight() + $scope.lineHeight + 15);
                             }
                             group.add(subgroup);
                         }
@@ -207,7 +203,6 @@ angular.module('history.directives', ['ngSanitize'])
                         fill: '#06ABF5',
                         width: duration
                     }));
-
                     var domain = '';
                     var predecessor = node.predecessorId ? $scope.tree.getPageView($scope.tree.vertexIds[node.predecessorId]) : undefined;
                     if ((end > 0 && start < 0) ||
@@ -221,7 +216,7 @@ angular.module('history.directives', ['ngSanitize'])
                         }
 
                         // truncate URLs longer than node line.
-                        //domain = domain.substring(0, (end - (start < 0 ? 2 : start)) / 7);
+                        domain = domain.substring(0, (end - (start < 0 ? 2 : start)) / 7);
                     }
 
                     group.add(new Kinetic.Text({
@@ -233,6 +228,15 @@ angular.module('history.directives', ['ngSanitize'])
                         y: 2
                     }));
 
+                    group.add(new Kinetic.Rect({
+                        x: 0,
+                        y: 3,
+                        height: group.getHeight() - 15,
+                        opacity: 0.2,
+                        fill: '#000',
+                        width: 1
+                    }));
+
                     group.on('click', (function(url) {
                         return function(event) {
                             if (event.which === 1) {
@@ -242,12 +246,7 @@ angular.module('history.directives', ['ngSanitize'])
                     })(node.pageUrl));
 
                     group.on('mouseover', function(event) {
-                        var group = event.targetNode;
-                        while (group.nodeType !== 'Group') {
-                            group = group.parent;
-                        }
-                        group.children[0].setFill('#eee');   // background
-                        group.children[4].setFill('#000'); // text
+                        $scope.selectAncestry(event.targetNode, true);
                         $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
@@ -285,18 +284,47 @@ angular.module('history.directives', ['ngSanitize'])
                         broadcast.send(data);
                     });
                     group.on('mouseout', function() {
-                        var group = event.targetNode;
-                        while (group.nodeType !== 'Group') {
-                            group = group.parent;
-                        }
-                        group.children[0].setFill('#fff');   // background
-                        group.children[4].setFill('#aaa'); // text
+                        $scope.selectAncestry(event.targetNode, false);
                         $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'move' });
                         broadcast.send({ 'action': 'hideInfoBox' });
                     });
 
                     return group;
+                };
+
+
+                $scope.selectAncestry = function(group, shouldSelect) {
+                    // set colors
+                    var background = shouldSelect ? '#eee' : '#fff';
+                    var text = shouldSelect ? '#000' : '#aaa';
+
+                    // get starting group
+                    while (group.nodeType !== 'Group') {
+                        group = group.parent;
+                    }
+                    group.children[0].setFill(background);
+                    group.children[4].setFill(text);
+
+                    // set ancestry
+                    while (group.parent.nodeType === 'Group') {
+                        if (group.parent.children[0].children[0].className === 'Rect' &&
+                            group.parent.children[0].children[4].className === 'Text') {
+                            // has parent
+                            group = group.parent;
+                            group.children[0].children[0].setFill(background);
+                            group.children[0].children[4].setFill(text);
+                        }
+                        else if (group.parent.children[0].nodeType === 'Group' &&
+                                 group.parent.children[0].children[0].nodeType === 'Group' &&
+                                 group.parent.children[0].children[0].children[0].className === 'Rect' &&
+                                 group.parent.children[0].children[0].children[4].className === 'Text') {
+                            // has predecessor
+                            group = group.parent;
+                            group.children[0].children[0].children[0].setFill(background);
+                            group.children[0].children[0].children[4].setFill(text);
+                        }
+                    }
                 };
 
                 /**
