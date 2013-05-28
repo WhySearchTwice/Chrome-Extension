@@ -19,11 +19,12 @@ function Controls($scope, broadcast) {
         });
     };
     $scope.move = function(pageX, scrollY) {
-        broadcast.send({
-            'action': 'move',
-            'pageX': pageX,
-            'scrollY': scrollY
-        });
+        var move = {
+            'action': 'move'
+        };
+        if (typeof pageX !== 'undefined') { move.pageX = pageX; }
+        if (typeof scrollY !== 'undefined') { move.scrollY = scrollY; }
+        broadcast.send(move);
     };
     $scope.debug = function() {
         broadcast.send({ 'action': 'debug' });
@@ -199,6 +200,7 @@ function Range($scope, broadcast) {
  */
 function InfoBox($scope, $timeout, broadcast, scrape) {
     $scope.visible = false;
+    $scope.loadTimeouts = [];
     $scope.keepInfoBox = function() {
         $timeout.cancel($scope.popupTimer);
     };
@@ -233,21 +235,33 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
         case 'showInfoBox':
             $scope.keepInfoBox();
             if ($scope.visible && $scope.infoBox && data.infoBox.id === $scope.infoBox.id) { break; }
-            $scope.visible = true;
+            $scope.showTimeout = $timeout(function() {
+                $scope.visible = true;
+            }, 200);
             $scope.infoBox = data.infoBox;
             $scope.checkPosition();
 
+            $scope.loadTimeouts.push($timeout(function() {
+                $scope.infoBox.error = 'timeout';
+                $scope.infoBox.title = 'Still loading...';
+            }, 3 * 1000));
+
             // Uses scrape service to get the new image.
             scrape.get(data.infoBox.url, function(data) {
+                for (var i = $scope.loadTimeouts.length - 1; i >= 0; i--) {
+                    $timeout.cancel($scope.loadTimeouts.splice(i, 1)[0]);
+                }
                 $scope.infoBox.checkingImages = [];
                 if (!data) {
                     $scope.infoBox.error = true;
-                    $scope.infoBox.title = 'No preview';
+                    $scope.infoBox.title = 'No preview available';
                 } else {
                     if ($scope.infoBox.url !== data.url) {
                         // this callback is not for the currently selected node.
                         return;
                     }
+                    $scope.infoBox.domain = data.url.replace(/^(.*):\/\/|\/.*|www\./g, '');
+                    $scope.infoBox.urlParts = data.url.split($scope.infoBox.domain);
                     for (var field in data) {
                         $scope.infoBox[field] = data[field];
                     }
@@ -259,7 +273,9 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                             var image = new Image();
                             image.onerror = function() {
                                 $(this).remove();
-                                $scope.infoBox.checkingImages.splice(0, 1);
+                                if ($scope.infoBox.checkingImages) {
+                                    $scope.infoBox.checkingImages.splice(0, 1);
+                                }
                                 $scope.$apply();
                             };
                             image.onload = function() {
@@ -356,7 +372,7 @@ function Tree($scope, rexster, broadcast) {
             'appendWidgetTo': '#time-picker',
             'minuteStep': 1
         })
-        .on('changeTime.timepicker', $scope.jumpToTime);
+        .on('change', $scope.jumpToTime);
 
     $scope.updateRange();
 

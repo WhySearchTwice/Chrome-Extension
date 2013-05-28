@@ -89,8 +89,8 @@
                         <i class="icon-external-link-sign"></i>
                     </a>
                 </h3>
-                <a href="{{infoBox.url}}" class="pageUrl" title="{{infoBox.url}}" target="_blank">{{infoBox.url}}</a>
-                <i class="loading icon-spinner icon-spin icon-2x" ng-show="infoBox.checkingImages.length || !infoBox.title"></i>
+                <a href="{{infoBox.url}}" class="pageUrl" title="{{infoBox.url}}" target="_blank">{{infoBox.urlParts[0]}}<strong>{{infoBox.domain}}</strong>{{infoBox.urlParts[1]}}</a>
+                <i class="loading icon-spinner icon-spin icon-2x" ng-show="infoBox.checkingImages.length || !infoBox.title || infoBox.error === 'timeout'"></i>
                 <div class="img-wrap">
                     <img src="{{infoBox.featuredImage}}" ng-show="infoBox.featuredImage">
                 </div>

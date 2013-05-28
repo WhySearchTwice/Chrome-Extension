@@ -78,6 +78,16 @@ angular.module('history.services', [], function($provide) {
                                 data = { 'url': url },
                                 results;
 
+                            // get redirect
+                            results = getTagContents(html, 'meta http-equiv="refresh"', 'content');
+                            if (results.length) {
+                                data.error = true;
+                                data.title = 'Redirect page';
+                                data.description = 'Redirects to ' + results[0];
+                                callback(data);
+                                return;
+                            }
+
                             // get title
                             results = getTagContents(html, 'title');
                             if (results.length) {

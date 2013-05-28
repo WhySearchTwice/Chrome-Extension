@@ -87,15 +87,11 @@ angular.module('history.directives', ['ngSanitize'])
                     $scope.tree.height = $scope.lineHeight;
                     var roots = Object.keys($scope.tree.built.root).sort();
                     for (var i = 0, l = roots.length; i < l; i++) {
-                        var group = $scope.createSubtree($scope.tree.built.root[roots[i]], 0);
-                        if ($scope.tree.height === $scope.lineHeight) {
-                            $scope.topGroup = group;
-                        }
+                        var group = $scope.createSubtree($scope.tree.built.root[roots[i]]);
                         group.setY($scope.tree.height);
                         $scope.layers.tree.add(group);
                         $scope.tree.height += group.getHeight() + $scope.lineHeight * 2; // 2: extra margin between windows
                     }
-                    console.log($scope.layers.tree);
                     $scope.stage.setSize({
                         width: $scope.viewportWidth,
                         height: $scope.viewportHeight
@@ -130,21 +126,21 @@ angular.module('history.directives', ['ngSanitize'])
                     if (subtree.children || !subtree.node) {
                         var children = Object.keys(subtree.children || subtree).sort();
                         for (var i = 0, l = children.length; i < l; i++) {
-                            var subgroup = $scope.createSubtree((subtree.children || subtree)[children[i]], 0);
+                            var subgroup = $scope.createSubtree((subtree.children || subtree)[children[i]]);
                             subgroup.setY(subtree.children ? y : 0);
-                            group.add(subgroup);
                             group.setHeight(group.getHeight() + subgroup.getHeight());
                             y = group.getHeight();
                             if (subtree.children) {
-                                var position = subgroup.children[0].getX() + 0;
-                                var path = new Kinetic.Line({
+                                group.add(new Kinetic.Rect({
+                                    x: subgroup.children[0].getX(),
+                                    y: 3,
+                                    height: group.getHeight() - 15,
                                     opacity: 0.2,
-                                    points: [position + 0.5, 3, position + 0.5, group.getHeight() - 20],
-                                    stroke: 'black',
-                                    strokeWidth: 1
-                                });
-                                group.add(path);
+                                    fill: '#000',
+                                    width: 1
+                                }));
                             }
+                            group.add(subgroup);
                         }
                     }
                     if (subtree.successor) {
