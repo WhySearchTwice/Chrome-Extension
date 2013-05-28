@@ -241,8 +241,13 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
             scrape.get(data.infoBox.url, function(data) {
                 $scope.infoBox.checkingImages = [];
                 if (!data) {
-                    $scope.infoBox.title = 'Could not get title...';
+                    $scope.infoBox.error = true;
+                    $scope.infoBox.title = 'No preview';
                 } else {
+                    if ($scope.infoBox.url !== data.url) {
+                        // this callback is not for the currently selected node.
+                        return;
+                    }
                     for (var field in data) {
                         $scope.infoBox[field] = data[field];
                     }
@@ -330,7 +335,7 @@ function Tree($scope, rexster, broadcast) {
     // scope constants
     $scope.rightTime = parseInt(localStorage.rightTime, 10) || $scope.now();
     $scope.range = parseInt(localStorage.range, 10) || 30;  // range in minutes
-    $scope.offset = getScrollBarWidth();
+    $scope.offset = 0;
     $scope.lineHeight = parseInt(localStorage.lineHeight, 10) || 25;  // history line height in px
     $scope.nodeHeight = Math.round($scope.lineHeight * 0.8);
 
@@ -567,7 +572,11 @@ function Tree($scope, rexster, broadcast) {
          * @param {String} relationship Type of relationship to ancestor
          */
         addNode: function(pageView, ancestor, relationship) {
-            pageView = $scope.tree.getPageView(pageView.indexedKey);
+            if (pageView.node) {
+                var isMoving = true;
+                var nodeGroup = pageView;
+            }
+            pageView = isMoving ? pageView.node : $scope.tree.getPageView(pageView.indexedKey);
             if (!ancestor || !ancestor.builtKey) {
                 $scope.tree.built.root[pageView.pageOpenTime] = { node: pageView };
                 pageView.builtKey = ['root', pageView.pageOpenTime];
@@ -576,7 +585,7 @@ function Tree($scope, rexster, broadcast) {
                 if (!ancestorGroup[relationship]) {
                     ancestorGroup[relationship] = {};
                 }
-                ancestorGroup[relationship][pageView.pageOpenTime] = { node: pageView };
+                ancestorGroup[relationship][pageView.pageOpenTime] = isMoving ? nodeGroup : { node: pageView };
                 pageView.builtKey = ancestor.builtKey.concat([relationship, pageView.pageOpenTime]);
             }
         },
@@ -664,7 +673,7 @@ function Tree($scope, rexster, broadcast) {
                 if ((pageView.node.parentId && $scope.tree.vertexIds[pageView.node.parentId]) ||
                     (pageView.node.predecessorId && $scope.tree.vertexIds[pageView.node.predecessorId])) {
                     $scope.tree.addNode(
-                        pageView.node,
+                        pageView,
                         $scope.tree.getPageView($scope.tree.vertexIds[pageView.node.parentId || pageView.node.predecessorId]),
                         pageView.node.parentId ? 'children' : 'successor'
                     );

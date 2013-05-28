@@ -233,6 +233,11 @@ body {
     z-index: 999999;
 }
 
+    #infoBox .loading {
+        opacity: .6;
+        margin: 10px 0 0 120px;
+    }
+
     #infoBox h3 {
         font-family: 'Roboto Condensed';
         font-size: 18px;
@@ -240,26 +245,57 @@ body {
         margin: 0;
     }
 
-    /*#infoBox::before {
-        content: "";
-        display: block;
-        height: 25px;
-        left: -10px;
-        position: absolute;
-        top: -20px;
-        width: 310px;
-    }*/
+        #infoBox h3 a {
+            color: #333;
+            display: block;
+        }
+
+        #infoBox.no-preview h3 a {
+            color: #aaa;
+        }
+
+        #infoBox h3 a i {
+            color: #ccc;
+            font-size: 14px;
+            position: absolute;
+            right: 5px;
+            top: 5px;
+        }
+
+        #infoBox h3 a:hover,
+        #infoBox h3 a:hover i {
+            color: #005580;
+            text-decoration: none;
+        }
+
+    #infoBox p {
+        margin: 10px 0 0 0;
+    }
 
     #infoBox a.pageUrl {
         display: block;
+        font-size: 11px;
         overflow: hidden;
         max-width: 260px;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    #infoBox img {
-        margin-top: 20px;
+    #infoBox .img-wrap {
+        background-color: #ccc;
+        margin: 10px 0;
+        overflow: hidden;
+        text-align: center;
+        width: 100%;
+    }
+
+    #infoBox .img-wrap img {
+        box-shadow: 0 0 20px rgba(0, 0, 0, .2);
+        margin: 0 auto;
+    }
+
+    #infoBox.loading > *:not(.loading) {
+        display: none;
     }
 
 .popIn-setup,

@@ -1,7 +1,7 @@
 /* JSHint: */
 /* global Tree */
 
-angular.module('history.directives', [])
+angular.module('history.directives', ['ngSanitize'])
     .directive('kinetic', function($window, $location, broadcast) {
         return {
             restrict: 'E',
@@ -122,7 +122,7 @@ angular.module('history.directives', [])
                     var group = new Kinetic.Group();
                     if (subtree.node) {
                         var start = $scope.locateTime(subtree.node.pageOpenTime);
-                        var end = subtree.node.pageCloseTime ? $scope.locateTime(subtree.node.pageCloseTime): window.innerWidth - $scope.offset;
+                        var end = subtree.node.pageCloseTime ? $scope.locateTime(subtree.node.pageCloseTime) : window.innerWidth - $scope.offset;
                         var nodegroup = $scope.createNode(start, end, subtree.node);
                         group.setHeight(group.getHeight() + nodegroup.getHeight());
                         group.add(nodegroup);
@@ -139,7 +139,7 @@ angular.module('history.directives', [])
                                 var position = subgroup.children[0].getX() + 0;
                                 var path = new Kinetic.Line({
                                     opacity: 0.2,
-                                    points: [position + 0.5, 3, position + 0.5, group.getHeight() - 15],
+                                    points: [position + 0.5, 3, position + 0.5, group.getHeight() - 20],
                                     stroke: 'black',
                                     strokeWidth: 1
                                 });
@@ -175,8 +175,7 @@ angular.module('history.directives', [])
                         x: 0,
                         y: 0,
                         height: $scope.nodeHeight,
-                        opacity: 0,
-                        fill: '#eee',
+                        fill: '#fff',
                         width: duration
                     }));
                     // add endpoints
@@ -226,7 +225,7 @@ angular.module('history.directives', [])
                         }
 
                         // truncate URLs longer than node line.
-                        domain = domain.substring(0, (end - (start < 0 ? 2 : start)) / 7);
+                        //domain = domain.substring(0, (end - (start < 0 ? 2 : start)) / 7);
                     }
 
                     group.add(new Kinetic.Text({
@@ -234,8 +233,8 @@ angular.module('history.directives', [])
                         fontSize: Math.round($scope.nodeHeight * 0.75),
                         fontFamily: '"Roboto"',
                         fill: '#aaa',
-                        x: start < 2 ? Math.ceil(-1 * start) : 2, // prevent text from falling off left side of screen
-                        y: 3
+                        x: start < 2 && end > 0 ? Math.ceil(-1 * start) : 5, // prevent text from falling off left side of screen
+                        y: 2
                     }));
 
                     group.on('click', (function(url) {
@@ -251,12 +250,13 @@ angular.module('history.directives', [])
                         while (group.nodeType !== 'Group') {
                             group = group.parent;
                         }
-                        group.children[0].setOpacity(1);   // background
+                        group.children[0].setFill('#eee');   // background
                         group.children[4].setFill('#000'); // text
                         $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > $scope.nodeHeight;
+                        if (isNaN(this.getAbsolutePosition().y)) { console.error('Absolute position broke!'); }
                         broadcast.send({
                             'action': 'showInfoBox',
                             'infoBox': {
@@ -293,7 +293,7 @@ angular.module('history.directives', [])
                         while (group.nodeType !== 'Group') {
                             group = group.parent;
                         }
-                        group.children[0].setOpacity(0);   // background
+                        group.children[0].setFill('#fff');   // background
                         group.children[4].setFill('#aaa'); // text
                         $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'move' });

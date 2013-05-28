@@ -75,7 +75,7 @@ angular.module('history.services', [], function($provide) {
                         .success(function(response) {
                             // This is the xml returned from the get request to the external website.
                             var html = response,
-                                data = {},
+                                data = { 'url': url },
                                 results;
 
                             // get title
@@ -84,10 +84,19 @@ angular.module('history.services', [], function($provide) {
                                 data.title = stripTags(results[0]).substr(0, 140);
                             }
 
-                            // get images
+                            // get description
+                            results = getTagContents(html, 'meta name="description"', 'content');
+                            if (results.length) {
+                                data.description = results[0];
+                            }
 
+                            // get images
                             results = getTagContents(html, 'meta property="og:image"', 'content');
-                            if (!results.length) {
+                            if (results.length) {
+                                // there is a featured image, use it
+                                data.featuredImage = results[0];
+                            } else {
+                                // no featured image. Get all images
                                 results = getTagContents(html, 'img', 'src');
                                 if (results.length) {
                                     var domainRelativeUrl = url.match(/^.*:\/\/[^\/]*/)[0] + '/',
@@ -104,17 +113,16 @@ angular.module('history.services', [], function($provide) {
                                     }
                                     data.images = results;
                                 }
-                            } else {
-                                data.featuredImage = results[0];
                             }
-
 
                             callback(data);
                         })
                         .error(function() {
-                            callback(false);
+                            callback();
                         })
                     ;
+                } else {
+                    callback();
                 }
             }
         };
@@ -228,7 +236,7 @@ angular.module('history.services', [], function($provide) {
                     /*
                     cache call here
                     */
-                    background.call('cacheGetTimeRange', [openRange, closeRange, params], 'searchCallback');
+                    //background.call('cacheGetTimeRange', [openRange, closeRange, params], 'searchCallback');
                 }
 
                 return $http

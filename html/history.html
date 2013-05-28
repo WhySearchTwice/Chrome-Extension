@@ -72,20 +72,29 @@
     <div id="tree-container" class="container-fluid">
         <div class="row-fluid">
             <div ng-view></div>
+            <!--ng-animate="{show: 'popIn', hide: 'popOut'}"-->
             <div id="infoBox"
                 ng-cloak
                 ng-controller="InfoBox"
                 ng-show="visible"
-                ng-animate="{show: 'popIn', hide: 'popOut'}"
                 ng-mouseover="keepInfoBox()"
                 ng-mouseout="hideInfoBox()"
                 ng-style="infoBox.style"
                 ng-click="debug()"
+                ng-class="{ 'loading': !infoBox.title, 'no-preview': infoBox.error }"
             >
-                <h3 ng-show="infoBox.title">{{infoBox.title}}</h3>
+                <h3 ng-show="infoBox.title">
+                    <a href="{{infoBox.url}}">
+                        <span ng-bind-html="infoBox.title"></span>
+                        <i class="icon-external-link-sign"></i>
+                    </a>
+                </h3>
                 <a href="{{infoBox.url}}" class="pageUrl" title="{{infoBox.url}}" target="_blank">{{infoBox.url}}</a>
-                <i class="icon-spinner icon-spin icon-large" ng-show="infoBox.checkingImages.length"></i>
-                <img src="{{infoBox.featuredImage}}" ng-show="infoBox.featuredImage">
+                <i class="loading icon-spinner icon-spin icon-2x" ng-show="infoBox.checkingImages.length || !infoBox.title"></i>
+                <div class="img-wrap">
+                    <img src="{{infoBox.featuredImage}}" ng-show="infoBox.featuredImage">
+                </div>
+                <p ng-show="infoBox.description" ng-bind-html="infoBox.description"></p>
             </div>
         </div>
     </div>
@@ -99,6 +108,7 @@
     <script src="/js/libs/angular.min.js"></script>
     <script src="/js/libs/angular-bootstrap.min.js"></script>
     <script src="/js/libs/angular-resource.min.js"></script>
+    <script src="/js/libs/angular-sanitize.min.js"></script>
     <script src="/js/history-services.js"></script>
     <script src="/js/history-controllers.js"></script>
     <script src="/js/history-filters.js"></script>
