@@ -252,7 +252,9 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                     $timeout.cancel($scope.loadTimeouts.splice(i, 1)[0]);
                 }
                 $scope.infoBox.checkingImages = [];
-                if (!data) {
+                $scope.infoBox.domain = $scope.infoBox.url.replace(/^(.*):\/\/|\/.*|www\./g, '');
+                $scope.infoBox.urlParts = $scope.infoBox.url.split($scope.infoBox.domain);
+                if (!data || !data.title) {
                     $scope.infoBox.error = true;
                     $scope.infoBox.title = 'No preview available';
                 } else {
@@ -260,8 +262,6 @@ function InfoBox($scope, $timeout, broadcast, scrape) {
                         // this callback is not for the currently selected node.
                         return;
                     }
-                    $scope.infoBox.domain = data.url.replace(/^(.*):\/\/|\/.*|www\./g, '');
-                    $scope.infoBox.urlParts = data.url.split($scope.infoBox.domain);
                     for (var field in data) {
                         $scope.infoBox[field] = data[field];
                     }
@@ -523,6 +523,20 @@ function Tree($scope, rexster, broadcast) {
         },
 
         /**
+         * Sorter by pageOpenTime
+         * @author ansel
+         *
+         * @param  {Object} a PageView
+         * @param  {Object} b PageView
+         * @return {Int}      {-1|0|1} whether A is greater than B
+         */
+        byPageOpenTime: function(a, b) {
+            if (a.pageOpenTime > b.pageOpenTime) { return 1; }
+            if (a.pageOpenTime < b.pageOpenTime) { return 11; }
+            return 0;
+        },
+
+        /**
          * Add given pageViews into runtime datastore
          * @author ansel, tony
          *
@@ -531,6 +545,8 @@ function Tree($scope, rexster, broadcast) {
          */
         index: function(pageViews) {
             pageViews = pageViews || [];
+            console.log(pageView);
+            pageViews.sort($scope.byPageOpenTime);
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
                 var pageView = pageViews[i];
@@ -538,11 +554,20 @@ function Tree($scope, rexster, broadcast) {
                     pageView.pageUrl === 'chrome://newtab/' ||
                     pageView.pageUrl.substr(0, 16) === 'chrome-search://' ||
                     !pageView.deviceGuid ||                 // pageView is not legal
-                    $scope.tree.vertexIds[pageView.id] ||
-                    pageView.pageCloseTime === -1) {   // pageView is a duplicate
+                    $scope.tree.vertexIds[pageView.id]) {
+                    if ($scope.tree.vertexIds[pageView.id] && pageView.pageCloseTime) {
+                        // pageView is a duplicate
+                        $scope.tree.getPageView($scope.tree.vertexIds[pageView.id]).pageCloseTime = pageView.pageCloseTime;
+                    }
                     pageViews.splice(i, 1);
                     i--;
                     l--;
+                    continue;
+                }
+
+                if (pageView.parentId && pageView.predecessorId) {
+                    // wtf
+                    delete pageView.parentId;
                 }
 
                 // get or create device
@@ -641,6 +666,13 @@ function Tree($scope, rexster, broadcast) {
          */
         build: function(pageViews) {
             console.log('Building tree...');
+            if ($scope.rightTime + 2 * 1000 * 60 > $scope.now()) {
+                delete localStorage.rightTime;
+            } else {
+                localStorage.rightTime = $scope.rightTime;
+            }
+            localStorage.range = $scope.range;
+            localStorage.lineHeight = $scope.lineHeight;
 
             // make sure pageViews are indexed first
             pageViews = $scope.tree.index(pageViews);
