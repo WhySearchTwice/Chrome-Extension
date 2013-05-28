@@ -544,8 +544,7 @@ function Tree($scope, rexster, broadcast) {
          * @return {Array}           Array of pageViews with keys
          */
         index: function(pageViews) {
-            pageViews = pageViews || [];
-            console.log(pageView);
+            if (!pageViews || !pageViews instanceof Array) { return []; }
             pageViews.sort($scope.byPageOpenTime);
             console.log('Indexing page views...');
             for (var i = 0, l = pageViews.length; i < l; i++) {
