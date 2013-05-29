@@ -246,7 +246,7 @@ angular.module('history.directives', ['ngSanitize'])
                         $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > $scope.nodeHeight;
-                        if (isNaN(this.getAbsolutePosition().y)) { console.error('Absolute position broke!'); }
+                        if (isNaN(this.getAbsolutePosition().y)) { window.location.reload(); }
                         broadcast.send({
                             'action': 'showInfoBox',
                             'infoBox': {
@@ -318,7 +318,7 @@ angular.module('history.directives', ['ngSanitize'])
 
                     var isActive = true;
                     // set ancestry
-                    while (group.parent && group.parent.nodeType === 'Group') {
+                    while (group.parent && group.parent.nodeType !== 'Stage') {
                         if (group.children[0].className === 'Rect' &&
                             group.children[4].className === 'Text') {
                             // has parent
