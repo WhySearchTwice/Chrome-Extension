@@ -748,11 +748,11 @@ function Tree($scope, rexster, broadcast) {
         // do search
         rexster.search($scope.rightTime - $scope.range * 1000 * 60, $scope.rightTime, $scope.searchCallback);
         // check for persistent tabs if this is the first search
-        if (!Object.keys($scope.tree.vertexIds).length) {
+        /*if (!Object.keys($scope.tree.vertexIds).length) {
             rexster.search(function(persistentPages) {
                 $scope.tree.build(persistentPages);
             });
-        }
+        }*/
     };
 
     $scope.updateData();

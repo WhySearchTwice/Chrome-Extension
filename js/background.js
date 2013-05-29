@@ -381,12 +381,12 @@ function addToSession(tab) {
 
     // Check if there is a tab with this ID already. If so, update it
     if (session.windows[newPage.windowId] &&
-        session.windows[newPage.windowId].tabs[newPage.id]) {
-        if (session.windows[newPage.windowId].tabs[newPage.id].id) {
-            newPage.predecessorId = session.windows[newPage.windowId].tabs[newPage.id].id;
+        session.windows[newPage.windowId].tabs[newPage.tabId]) {
+        if (session.windows[newPage.windowId].tabs[newPage.tabId].id) {
+            newPage.predecessorId = session.windows[newPage.windowId].tabs[newPage.tabId].id;
         }
         console.log('Calling send page...');
-        updatePage(newPage.windowId, newPage.id);
+        updatePage(newPage.windowId, newPage.tabId);
     } else {
         endLogEvent();
     }
@@ -395,14 +395,14 @@ function addToSession(tab) {
     if (!session.windows[newPage.windowId]) {
         session.windows[newPage.windowId] = {
             tabs: {},
-            focusedTab: newPage.id
+            focusedTab: newPage.tabId
         };
     }
-    session.windows[newPage.windowId].tabs[newPage.id] = newPage;
+    session.windows[newPage.windowId].tabs[newPage.tabId] = newPage;
     console.log('Created page object:');
     console.log(newPage);
     endLogEvent();
-    sendPage(newPage.windowId, newPage.id);
+    sendPage(newPage.windowId, newPage.tabId);
 }
 
 /**

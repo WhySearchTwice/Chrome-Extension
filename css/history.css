@@ -206,7 +206,7 @@ body {
     }
 
     .range-selection-marker {
-        background: #c5c5c5;
+        background: #005580;
         height: calc(100% - 41px);
         position: fixed;
         top: 41px;

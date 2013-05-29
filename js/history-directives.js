@@ -27,9 +27,9 @@ angular.module('history.directives', ['ngSanitize'])
                     if ($scope.dragging && !isNaN($scope.stage.getY())) {
                         $scope.dragging.dy = $scope.stage.getY();
                     }
-                    if ($scope.stage.getY() + $scope.tree.height < $scope.viewportHeight) {
+                    /*if ($scope.stage.getY() + $scope.tree.height + $scope.lineHeight < $scope.viewportHeight) {
                         $scope.stage.setY($scope.viewportHeight - $scope.tree.height);
-                    }
+                    }*/
                     if ($scope.stage.getY() > 0) {
                         $scope.stage.setY(0);
                     }
@@ -132,9 +132,14 @@ angular.module('history.directives', ['ngSanitize'])
                             y += subgroup.getHeight();
                             if (subtree.children) {
                                 // add path
-                                var childNode = subgroup.children[0].children[5];
-                                childNode.setHeight(group.getHeight() - 15);
-                                childNode.setY(-1 * group.getHeight() + $scope.lineHeight + 15);
+                                group.add(new Kinetic.Rect({
+                                    x: subgroup.children[0].getX(),
+                                    y: 3,
+                                    height: group.getHeight() - 15,
+                                    opacity: 0.2,
+                                    fill: '#000',
+                                    width: 1
+                                }));
                             }
                             group.add(subgroup);
                         }
@@ -228,15 +233,6 @@ angular.module('history.directives', ['ngSanitize'])
                         y: 2
                     }));
 
-                    group.add(new Kinetic.Rect({
-                        x: 0,
-                        y: 3,
-                        height: group.getHeight() - 15,
-                        opacity: 0.2,
-                        fill: '#000',
-                        width: 1
-                    }));
-
                     group.on('click', (function(url) {
                         return function(event) {
                             if (event.which === 1) {
@@ -247,7 +243,6 @@ angular.module('history.directives', ['ngSanitize'])
 
                     group.on('mouseover', function(event) {
                         $scope.selectAncestry(event.targetNode, true);
-                        $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'pointer' });
                         // Prevents popups from going off the page.
                         var hasSpace = window.innerWidth - event.pageX - 300 > $scope.nodeHeight;
@@ -285,7 +280,6 @@ angular.module('history.directives', ['ngSanitize'])
                     });
                     group.on('mouseout', function() {
                         $scope.selectAncestry(event.targetNode, false);
-                        $scope.layers.tree.draw();
                         $('#tree-container').css({ 'cursor': 'move' });
                         broadcast.send({ 'action': 'hideInfoBox' });
                     });
@@ -296,35 +290,60 @@ angular.module('history.directives', ['ngSanitize'])
 
                 $scope.selectAncestry = function(group, shouldSelect) {
                     // set colors
-                    var background = shouldSelect ? '#eee' : '#fff';
-                    var text = shouldSelect ? '#000' : '#aaa';
+                    var colors = {
+                        'active': {
+                            'background': shouldSelect ? '#06abf5' : '#fff',
+                            'text': shouldSelect ? '#fff' : '#aaa',
+                            'duration': shouldSelect ? '#005580' : '#06abf5'
+                        },
+                        'ancestry': {
+                            'background': shouldSelect ? '#9de1ea' : '#fff',
+                            'text': shouldSelect ? '#000' : '#aaa',
+                            'duration': '#06abf5'
+                        }
+                    };
+                    colors.active.endpoints = [
+                        0, colors.active.duration,
+                        1, colors.active.background
+                    ];
+                    colors.ancestry.endpoints = [
+                        0, colors.ancestry.duration,
+                        1, colors.ancestry.background
+                    ];
 
                     // get starting group
                     while (group.nodeType !== 'Group') {
                         group = group.parent;
                     }
-                    group.children[0].setFill(background);
-                    group.children[4].setFill(text);
 
+                    var isActive = true;
                     // set ancestry
-                    while (group.parent.nodeType === 'Group') {
-                        if (group.parent.children[0].children[0].className === 'Rect' &&
-                            group.parent.children[0].children[4].className === 'Text') {
+                    while (group.parent && group.parent.nodeType === 'Group') {
+                        if (group.children[0].className === 'Rect' &&
+                            group.children[4].className === 'Text') {
                             // has parent
-                            group = group.parent;
-                            group.children[0].children[0].setFill(background);
-                            group.children[0].children[4].setFill(text);
+                            group.children[0].setFill(colors[isActive ? 'active' : 'ancestry'].background);
+                            group.children[1].setFillLinearGradientColorStops(colors[isActive ? 'active' : 'ancestry'].endpoints);
+                            group.children[2].setFillLinearGradientColorStops(colors[isActive ? 'active' : 'ancestry'].endpoints);
+                            group.children[3].setFill(colors[isActive ? 'active' : 'ancestry'].duration);
+                            group.children[4].setFill(colors[isActive ? 'active' : 'ancestry'].text);
                         }
-                        else if (group.parent.children[0].nodeType === 'Group' &&
-                                 group.parent.children[0].children[0].nodeType === 'Group' &&
-                                 group.parent.children[0].children[0].children[0].className === 'Rect' &&
-                                 group.parent.children[0].children[0].children[4].className === 'Text') {
+                        else if (group.children[0].nodeType === 'Group' &&
+                                 group.children[0].children[0].className === 'Rect' &&
+                                 group.children[0].children[4].className === 'Text') {
                             // has predecessor
-                            group = group.parent;
-                            group.children[0].children[0].children[0].setFill(background);
-                            group.children[0].children[0].children[4].setFill(text);
+                            if (group.children[0].children[0].getFill() !== colors.active.background) {
+                                group.children[0].children[0].setFill(colors[isActive ? 'active' : 'ancestry'].background);
+                                group.children[0].children[1].setFillLinearGradientColorStops(colors[isActive ? 'active' : 'ancestry'].endpoints);
+                                group.children[0].children[2].setFillLinearGradientColorStops(colors[isActive ? 'active' : 'ancestry'].endpoints);
+                                group.children[0].children[3].setFill(colors[isActive ? 'active' : 'ancestry'].duration);
+                                group.children[0].children[4].setFill(colors[isActive ? 'active' : 'ancestry'].text);
+                            }
                         }
+                        group = group.parent;
+                        isActive = false;
                     }
+                    $scope.layers.tree.draw();
                 };
 
                 /**
