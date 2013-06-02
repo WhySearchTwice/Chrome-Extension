@@ -28,9 +28,6 @@
     },
     "homepage_url": "http://whysearchtwice.com",
     "incognito": "spanning",
-    "omnibox": {
-        "keyword": "history"
-    },
     "options_page": "html/options.html",
     "permissions": [
         "*://*/*",
