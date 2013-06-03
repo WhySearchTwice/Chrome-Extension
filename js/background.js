@@ -65,14 +65,14 @@ var requestQueue = {
     // make sure page doesn't queue forever
     setTimeout(function() {
         if (requestQueue.isActive) {
-            window.location.reload();
             if (!localStorage.recoveryAttempts) {
                 localStorage.recoveryAttempts = 0;
             } else if (localStorage.recoveryAttempts < 5) {
-                reset('factory');
+                //reset('factory');
             } else {
                 localStorage.recoveryAttempts++;
             }
+            window.location.reload();
         } else {
             delete localStorage.recoveryAttempts;
         }
