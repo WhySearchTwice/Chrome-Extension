@@ -643,35 +643,42 @@ function openHistory() {
 function validateEnvironment() {
     console.log('Validating local info with Chrome Sync... ');
     if (!localStorage.userEmail) {
-        console.log('Failed. Trying to fetch user email via oauth...');
-        var oauth = ChromeExOAuth.initBackgroundPage({
-            'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
-            'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
-            'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
-            'consumer_key'   : 'anonymous', // TODO: Register app with Google
-            'consumer_secret': 'anonymous', // TODO: Register app with Google
-            'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
-            'app_name'       : 'Capstone'
-        });
+        chrome.windows.getAll({populate: true}, function(windows) {
+            for (var i = 0, l = windows.length; i < l; i++) {
+                for (var j = 0, m = windows[i].tabs.length; j < m; j++) {
+                    console.log(windows[i].tabs[j]);
+                    if (windows[i].tabs[j].url.match(/accounts.google.com\/OAuthAuthorizeToken/)) {
+                        return;
+                    }
+                }
+            }
+            console.log('Failed. Trying to fetch user email via oauth...');
+            var oauth = ChromeExOAuth.initBackgroundPage({
+                'request_url'    : 'https://www.google.com/accounts/OAuthGetRequestToken',
+                'authorize_url'  : 'https://www.google.com/accounts/OAuthAuthorizeToken',
+                'access_url'     : 'https://www.google.com/accounts/OAuthGetAccessToken',
+                'consumer_key'   : 'anonymous', // TODO: Register app with Google
+                'consumer_secret': 'anonymous', // TODO: Register app with Google
+                'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
+                'app_name'       : 'Capstone'
+            });
 
-        console.log('Authorizing with Google...');
-        oauth.authorize(function() {
-            console.log('Authorized. Fetching email...');
-            var url = 'https://www.googleapis.com/userinfo/email';
-            var request = {
-                'method': 'GET',
-                'parameters': {'alt': 'json'}
-            };
-            oauth.sendSignedRequest(url, function(response) {
-                localStorage.userEmail = JSON.parse(response).data.email;
-                console.log('Email saved.');
-                renewGuids();
-            }, request);
+            console.log('Authorizing with Google...');
+            oauth.authorize(function() {
+                console.log('Authorized. Fetching email...');
+                var url = 'https://www.googleapis.com/userinfo/email';
+                var request = {
+                    'method': 'GET',
+                    'parameters': {'alt': 'json'}
+                };
+                oauth.sendSignedRequest(url, function(response) {
+                    localStorage.userEmail = JSON.parse(response).data.email;
+                    console.log('Email saved.');
+                    renewGuids();
+                }, request);
+            });
         });
-        return;
-    }
-
-    if (deviceGuid) {
+    } else if (deviceGuid) {
         requestQueue.isActive = false;
     } else {
         renewGuids();
