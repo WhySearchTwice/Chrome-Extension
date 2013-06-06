@@ -68,7 +68,7 @@ var requestQueue = {
             if (!localStorage.recoveryAttempts) {
                 localStorage.recoveryAttempts = 0;
             } else if (localStorage.recoveryAttempts < 5) {
-                //reset('factory');
+                reset('factory');
             } else {
                 localStorage.recoveryAttempts++;
             }
@@ -760,8 +760,10 @@ function cleanDatastore() {
  */
 function reset(scope) {
     var overrides = localStorage.force;
+    var userEmail = localStorage.userEmail;
     localStorage.clear();
     localStorage.force = overrides;
+    if (userEmail) { localStorage.userEmail = userEmail; }
 
     if (scope === 'factory') {
         if (localStorage.force) { delete localStorage.force; }
