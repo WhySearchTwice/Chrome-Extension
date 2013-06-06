@@ -24,6 +24,18 @@ angular.module('history.services', [], function($provide) {
     });
 
     /**
+     * Sends broadcast messages between scopes
+     * @author ansel
+     */
+    $provide.factory('broadcast', function($rootScope) {
+        return {
+            send: function(data) {
+                $rootScope.$broadcast('handleBroadcast', data);
+            }
+        };
+    });
+
+    /**
      * Sends out a get request to specified webpage and then iterates through
      * all images to find one that best represents the given page.
      * @author chris, ansel
@@ -124,7 +136,6 @@ angular.module('history.services', [], function($provide) {
                                     data.images = results;
                                 }
                             }
-
                             callback(data);
                         })
                         .error(function() {
@@ -139,22 +150,10 @@ angular.module('history.services', [], function($provide) {
     }]);
 
     /**
-     * Sends broadcast messages between scopes
-     * @author ansel
-     */
-    $provide.factory('broadcast', function($rootScope) {
-        return {
-            send: function(data) {
-                $rootScope.$broadcast('handleBroadcast', data);
-            }
-        };
-    });
-
-    /**
      * rexster service for interacting with rexster endpoints
      * @author ansel
      */
-    $provide.factory('rexster', ['$http', 'background', function($http, background) {
+    $provide.factory('rexster', ['$http', 'background', 'broadcast', function($http, background, broadcast) {
         var searched = [];
 
         /**
@@ -251,10 +250,20 @@ angular.module('history.services', [], function($provide) {
 
                 return $http
                     .get(localStorage.SERVER + '/graphs/WhySearchTwice' + request)
-                    .then(function(response) {
-                        var results = response.data.results;
+                    .success(function(response) {
+                        broadcast.send({
+                            'action': 'serverStatusChange',
+                            'isOffline': false
+                        });
+                        var results = response.results;
                         if (typeof params === 'function') { params(results); }
                         if (typeof callback === 'function') { callback(results); }
+                    })
+                    .error(function() {
+                        broadcast.send({
+                            'action': 'serverStatusChange',
+                            'isOffline': true
+                        });
                     })
                 ;
             }

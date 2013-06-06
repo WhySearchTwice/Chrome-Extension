@@ -32,6 +32,20 @@ function Controls($scope, broadcast) {
 }
 
 /**
+ * Controller for the error handler
+ */
+function ErrorHandler($scope, broadcast) {
+    $scope.offline = false;
+    $scope.$on('handleBroadcast', function(event, data) {
+        switch (data.action) {
+        case 'serverStatusChange':
+            $scope.offline = data.isOffline;
+            break;
+        }
+    });
+}
+
+/**
  * Controller for the keyboard shortcuts
  * @author ansel
  */
