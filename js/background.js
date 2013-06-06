@@ -660,7 +660,7 @@ function validateEnvironment() {
                 'consumer_key'   : 'anonymous', // TODO: Register app with Google
                 'consumer_secret': 'anonymous', // TODO: Register app with Google
                 'scope'          : 'https://www.googleapis.com/auth/userinfo.email',
-                'app_name'       : 'Capstone'
+                'app_name'       : 'Why Search Twice'
             });
 
             console.log('Authorizing with Google...');
