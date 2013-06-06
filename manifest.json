@@ -1,6 +1,6 @@
 {
-    "name": "Why Search Twice?",
-    "version": "0.0.17",
+    "name": "Retrospect",
+    "version": "0.0.18",
     "manifest_version": 2,
     "description": "Nothing is ever lost, make your history work for you.",
     "icons": {
@@ -26,7 +26,7 @@
     "chrome_url_overrides" : {
         "history": "html/history.html"
     },
-    "homepage_url": "http://whysearchtwice.com",
+    "homepage_url": "http://retrospect.io",
     "incognito": "spanning",
     "options_page": "html/options.html",
     "permissions": [
