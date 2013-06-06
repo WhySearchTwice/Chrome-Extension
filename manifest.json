@@ -14,7 +14,7 @@
             "js/libs/oauth-simple.js",
             "js/libs/oauth.js",
             "js/background.js",
-	        "js/cache.js"
+            "js/cache.js"
         ]
     },
     "browser_action": {
